@@ -37,6 +37,7 @@ namespace MSAgentAI.UI
         private Button _browsePathButton;
         private ListBox _characterListBox;
         private Button _previewButton;
+        private Button _selectButton;
         private Label _characterInfoLabel;
 
         // Voice controls
@@ -190,14 +191,14 @@ namespace MSAgentAI.UI
             };
             _previewButton.Click += OnPreviewClick;
 
-            var selectButton = new Button
+            _selectButton = new Button
             {
                 Text = "Use This Character",
                 Location = new Point(100, 365),
                 Size = new Size(120, 30),
                 Enabled = false
             };
-            selectButton.Click += OnSelectCharacterClick;
+            _selectButton.Click += OnSelectCharacterClick;
 
             _characterInfoLabel = new Label
             {
@@ -210,7 +211,7 @@ namespace MSAgentAI.UI
             _agentTab.Controls.AddRange(new Control[]
             {
                 pathLabel, _characterPathTextBox, _browsePathButton, refreshButton,
-                listLabel, _characterListBox, _previewButton, selectButton, _characterInfoLabel
+                listLabel, _characterListBox, _previewButton, _selectButton, _characterInfoLabel
             });
         }
 
@@ -661,6 +662,7 @@ namespace MSAgentAI.UI
         {
             var enabled = _characterListBox.SelectedItem != null;
             _previewButton.Enabled = enabled;
+            _selectButton.Enabled = enabled;
 
             if (_characterListBox.SelectedItem is CharacterItem item)
             {
