@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
+using MSAgentAI.Logging;
 
 namespace MSAgentAI.Agent
 {
@@ -167,17 +168,22 @@ namespace MSAgentAI.Agent
         {
             var diagnostics = new List<string>();
             
+            Logger.Log("Running MS Agent diagnostics...");
+            
             // Check for Agent Server registration
             try
             {
                 using (var key = Registry.ClassesRoot.OpenSubKey(@"CLSID\{D45FD31B-5C6E-11D1-9EC1-00C04FD7081F}"))
                 {
-                    diagnostics.Add(key != null ? "✓ AgentServer CLSID registered" : "✗ AgentServer CLSID NOT registered");
+                    var msg = key != null ? "✓ AgentServer CLSID registered" : "✗ AgentServer CLSID NOT registered";
+                    diagnostics.Add(msg);
+                    Logger.LogDiagnostic("Registry", msg);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 diagnostics.Add("✗ Cannot check AgentServer CLSID");
+                Logger.LogError("Cannot check AgentServer CLSID", ex);
             }
             
             // Check for Agent Control registration
@@ -185,12 +191,15 @@ namespace MSAgentAI.Agent
             {
                 using (var key = Registry.ClassesRoot.OpenSubKey(@"CLSID\{D45FD31D-5C6E-11D1-9EC1-00C04FD7081F}"))
                 {
-                    diagnostics.Add(key != null ? "✓ Agent.Control CLSID registered" : "✗ Agent.Control CLSID NOT registered");
+                    var msg = key != null ? "✓ Agent.Control CLSID registered" : "✗ Agent.Control CLSID NOT registered";
+                    diagnostics.Add(msg);
+                    Logger.LogDiagnostic("Registry", msg);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 diagnostics.Add("✗ Cannot check Agent.Control CLSID");
+                Logger.LogError("Cannot check Agent.Control CLSID", ex);
             }
             
             // Check for AgentServer.Agent ProgID
@@ -198,12 +207,15 @@ namespace MSAgentAI.Agent
             {
                 using (var key = Registry.ClassesRoot.OpenSubKey(@"AgentServer.Agent"))
                 {
-                    diagnostics.Add(key != null ? "✓ AgentServer.Agent ProgID registered" : "✗ AgentServer.Agent ProgID NOT registered");
+                    var msg = key != null ? "✓ AgentServer.Agent ProgID registered" : "✗ AgentServer.Agent ProgID NOT registered";
+                    diagnostics.Add(msg);
+                    Logger.LogDiagnostic("Registry", msg);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 diagnostics.Add("✗ Cannot check AgentServer.Agent ProgID");
+                Logger.LogError("Cannot check AgentServer.Agent ProgID", ex);
             }
             
             // Check for Agent.Control.2 ProgID
@@ -211,12 +223,31 @@ namespace MSAgentAI.Agent
             {
                 using (var key = Registry.ClassesRoot.OpenSubKey(@"Agent.Control.2"))
                 {
-                    diagnostics.Add(key != null ? "✓ Agent.Control.2 ProgID registered" : "✗ Agent.Control.2 ProgID NOT registered");
+                    var msg = key != null ? "✓ Agent.Control.2 ProgID registered" : "✗ Agent.Control.2 ProgID NOT registered";
+                    diagnostics.Add(msg);
+                    Logger.LogDiagnostic("Registry", msg);
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 diagnostics.Add("✗ Cannot check Agent.Control.2 ProgID");
+                Logger.LogError("Cannot check Agent.Control.2 ProgID", ex);
+            }
+            
+            // Check for Type Library registration (TYPE_E_LIBNOTREGISTERED fix)
+            try
+            {
+                using (var key = Registry.ClassesRoot.OpenSubKey(@"TypeLib\{A7B93C73-7B81-11D0-AC5F-00C04FD97575}"))
+                {
+                    var msg = key != null ? "✓ MS Agent TypeLib registered" : "✗ MS Agent TypeLib NOT registered (causes TYPE_E_LIBNOTREGISTERED)";
+                    diagnostics.Add(msg);
+                    Logger.LogDiagnostic("Registry", msg);
+                }
+            }
+            catch (Exception ex)
+            {
+                diagnostics.Add("✗ Cannot check MS Agent TypeLib");
+                Logger.LogError("Cannot check MS Agent TypeLib", ex);
             }
             
             // Check for MS Agent DLLs
@@ -227,13 +258,17 @@ namespace MSAgentAI.Agent
             {
                 Path.Combine(sysDir, "agentsvr.exe"),
                 Path.Combine(sysDir, "agentctl.dll"),
+                Path.Combine(agentDir, "agentsvr.exe"),
                 Path.Combine(agentDir, "agentctl.dll"),
-                Path.Combine(agentDir, "agentdpv.dll")
+                Path.Combine(agentDir, "agentdpv.dll"),
+                Path.Combine(agentDir, "agtctl15.tlb") // Type library file
             };
             
             foreach (var file in filesToCheck)
             {
-                diagnostics.Add(File.Exists(file) ? $"✓ {file} exists" : $"✗ {file} NOT found");
+                var msg = File.Exists(file) ? $"✓ {file} exists" : $"✗ {file} NOT found";
+                diagnostics.Add(msg);
+                Logger.LogDiagnostic("Files", msg);
             }
             
             // Check for character files
@@ -241,14 +276,29 @@ namespace MSAgentAI.Agent
             if (Directory.Exists(charsDir))
             {
                 var charFiles = Directory.GetFiles(charsDir, "*.acs");
-                diagnostics.Add($"✓ Character directory exists with {charFiles.Length} character(s)");
+                var msg = $"✓ Character directory exists with {charFiles.Length} character(s)";
+                diagnostics.Add(msg);
+                Logger.LogDiagnostic("Files", msg);
             }
             else
             {
                 diagnostics.Add("✗ Character directory NOT found");
+                Logger.LogDiagnostic("Files", "Character directory NOT found");
             }
             
-            return string.Join("\n", diagnostics);
+            // Add fix instructions for TYPE_E_LIBNOTREGISTERED
+            diagnostics.Add("");
+            diagnostics.Add("=== Fix for TYPE_E_LIBNOTREGISTERED ===");
+            diagnostics.Add("Run these commands as Administrator:");
+            diagnostics.Add($"  regsvr32 \"{Path.Combine(agentDir, "agentsvr.exe")}\"");
+            diagnostics.Add($"  regsvr32 \"{Path.Combine(agentDir, "agentctl.dll")}\"");
+            diagnostics.Add("");
+            diagnostics.Add("If the above fails, try re-installing MS Agent or use DoubleAgent.");
+            
+            var result = string.Join("\n", diagnostics);
+            Logger.Log("Diagnostics complete. Results:\n" + result);
+            
+            return result;
         }
 
         /// <summary>
@@ -275,13 +325,17 @@ namespace MSAgentAI.Agent
         /// </summary>
         public void LoadCharacter(string characterPath)
         {
+            Logger.Log($"Loading character from: {characterPath}");
+            
             if (_agentServer == null)
             {
+                Logger.LogError("Agent server not initialized");
                 throw new AgentException("Agent server not initialized.");
             }
 
             Exception firstException = null;
             Exception secondException = null;
+            Exception thirdException = null;
             
             try
             {
@@ -294,54 +348,58 @@ namespace MSAgentAI.Agent
                 // Method 1: Try AgentServer.Load (IAgentEx interface)
                 try
                 {
+                    Logger.Log("Trying Method 1: AgentServer.Load");
                     object charId = null;
                     object requestId = null;
                     _agentServer.Load(characterPath, ref charId, ref requestId);
                     _characterId = Convert.ToInt32(charId);
                     _character = _agentServer.Character(_characterId);
                     _isLoaded = true;
-                    System.Diagnostics.Debug.WriteLine($"Character loaded using AgentServer.Load: {characterPath}");
+                    Logger.Log($"SUCCESS: Character loaded using AgentServer.Load");
                     return;
                 }
                 catch (Exception ex)
                 {
                     firstException = ex;
-                    System.Diagnostics.Debug.WriteLine($"AgentServer.Load failed: {ex.Message}");
+                    Logger.LogError("Method 1 (AgentServer.Load) failed", ex);
                 }
 
                 // Method 2: Try Agent.Control style (Characters collection)
                 try
                 {
+                    Logger.Log("Trying Method 2: Characters.Load");
                     string charName = Path.GetFileNameWithoutExtension(characterPath);
                     dynamic characters = _agentServer.Characters;
                     characters.Load(charName, characterPath);
                     _character = characters[charName];
                     _characterId = charName.GetHashCode();
                     _isLoaded = true;
-                    System.Diagnostics.Debug.WriteLine($"Character loaded using Characters.Load: {characterPath}");
+                    Logger.Log($"SUCCESS: Character loaded using Characters.Load");
                     return;
                 }
                 catch (Exception ex)
                 {
                     secondException = ex;
-                    System.Diagnostics.Debug.WriteLine($"Characters.Load failed: {ex.Message}");
+                    Logger.LogError("Method 2 (Characters.Load) failed", ex);
                 }
                 
                 // Method 3: Try loading with just the filename (some versions expect this)
                 try
                 {
+                    Logger.Log("Trying Method 3: Characters.Character");
                     string charName = Path.GetFileNameWithoutExtension(characterPath);
                     dynamic characters = _agentServer.Characters;
                     characters.Load(charName, (object)characterPath);
                     _character = characters.Character(charName);
                     _characterId = charName.GetHashCode();
                     _isLoaded = true;
-                    System.Diagnostics.Debug.WriteLine($"Character loaded using Characters.Character: {characterPath}");
+                    Logger.Log($"SUCCESS: Character loaded using Characters.Character");
                     return;
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"Characters.Character failed: {ex.Message}");
+                    thirdException = ex;
+                    Logger.LogError("Method 3 (Characters.Character) failed", ex);
                 }
 
                 // All methods failed
@@ -350,7 +408,12 @@ namespace MSAgentAI.Agent
                     errorMsg += $"Method 1 (AgentServer.Load): {firstException.Message}\n";
                 if (secondException != null)
                     errorMsg += $"Method 2 (Characters.Load): {secondException.Message}\n";
+                if (thirdException != null)
+                    errorMsg += $"Method 3 (Characters.Character): {thirdException.Message}\n";
                 
+                errorMsg += $"\nSee log file for details: {Logger.LogFilePath}";
+                
+                Logger.LogError("All character loading methods failed");
                 throw new AgentException(errorMsg);
             }
             catch (AgentException)
@@ -359,11 +422,13 @@ namespace MSAgentAI.Agent
             }
             catch (COMException ex)
             {
-                throw new AgentException($"COM error loading character from '{characterPath}': 0x{ex.ErrorCode:X8} - {ex.Message}", ex);
+                Logger.LogError($"COM error loading character", ex);
+                throw new AgentException($"COM error loading character from '{characterPath}': 0x{ex.ErrorCode:X8} - {ex.Message}\n\nSee log: {Logger.LogFilePath}", ex);
             }
             catch (Exception ex)
             {
-                throw new AgentException($"Unexpected error loading character from '{characterPath}': {ex.Message}", ex);
+                Logger.LogError($"Unexpected error loading character", ex);
+                throw new AgentException($"Unexpected error loading character from '{characterPath}': {ex.Message}\n\nSee log: {Logger.LogFilePath}", ex);
             }
         }
 

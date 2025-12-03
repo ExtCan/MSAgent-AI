@@ -1,5 +1,6 @@
 using System;
 using System.Windows.Forms;
+using MSAgentAI.Logging;
 using MSAgentAI.UI;
 
 namespace MSAgentAI
@@ -12,9 +13,30 @@ namespace MSAgentAI
         [STAThread]
         static void Main()
         {
+            // Initialize logging first
+            Logger.Initialize();
+            Logger.Log("Application starting...");
+            
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm());
+            
+            try
+            {
+                Application.Run(new MainForm());
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Unhandled application exception", ex);
+                MessageBox.Show(
+                    $"An unexpected error occurred:\n\n{ex.Message}\n\nSee log for details: {Logger.LogFilePath}",
+                    "MSAgent AI Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            finally
+            {
+                Logger.Log("Application shutting down.");
+            }
         }
     }
 }

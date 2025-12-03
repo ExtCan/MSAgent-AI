@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using MSAgentAI.Agent;
 using MSAgentAI.AI;
 using MSAgentAI.Config;
+using MSAgentAI.Logging;
 using MSAgentAI.Voice;
 
 namespace MSAgentAI.UI
@@ -146,6 +147,7 @@ namespace MSAgentAI.UI
             speakItem.DropDownItems.AddRange(new ToolStripItem[] { speakJokeItem, speakThoughtItem, speakCustomItem });
 
             var separatorItem2 = new ToolStripSeparator();
+            var viewLogItem = new ToolStripMenuItem("View Log...", null, OnViewLog);
             var aboutItem = new ToolStripMenuItem("About", null, OnAbout);
             var exitItem = new ToolStripMenuItem("Exit", null, OnExit);
 
@@ -157,6 +159,7 @@ namespace MSAgentAI.UI
                 chatItem,
                 speakItem,
                 separatorItem2,
+                viewLogItem,
                 aboutItem,
                 exitItem
             });
@@ -316,6 +319,25 @@ namespace MSAgentAI.UI
                 {
                     _agentManager.Speak(dialog.InputText);
                 }
+            }
+        }
+
+        private void OnViewLog(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(Logger.LogFilePath) && File.Exists(Logger.LogFilePath))
+                {
+                    Logger.OpenLogFile();
+                }
+                else
+                {
+                    MessageBox.Show($"Log file not found at:\n{Logger.LogFilePath}", "Log", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to open log file: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
