@@ -339,7 +339,8 @@ namespace MSAgentAI.Agent
         }
 
         /// <summary>
-        /// Loads a character from the specified file path
+        /// Loads a character from the specified file path using pure dynamic/IDispatch binding
+        /// This avoids the TYPE_E_LIBNOTREGISTERED error by not using .NET reflection on COM objects
         /// </summary>
         public void LoadCharacter(string characterPath)
         {
@@ -353,20 +354,6 @@ namespace MSAgentAI.Agent
 
             Exception firstException = null;
             Exception secondException = null;
-            Exception thirdException = null;
-            Exception fourthException = null;
-            
-            Type serverType = null;
-            try
-            {
-                serverType = _agentServer.GetType();
-                Logger.Log($"Agent server type: {serverType?.FullName ?? "null"}");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("Failed to get agent server type", ex);
-                throw new AgentException($"Failed to get agent server type: {ex.Message}", ex);
-            }
             
             try
             {
@@ -374,122 +361,79 @@ namespace MSAgentAI.Agent
                 if (_isLoaded && _characterId != 0)
                 {
                     Logger.Log("Unloading existing character");
-                    UnloadCharacter();
+                    try { UnloadCharacter(); } catch { /* ignore unload errors */ }
                 }
 
-                // Method 1: Try using InvokeMember to call Load (avoids type library requirement)
+                string charName = Path.GetFileNameWithoutExtension(characterPath);
+                Logger.Log($"Character name: {charName}");
+
+                // Method 1: Use Characters collection with dynamic binding
+                // This is the standard Agent.Control approach used by most MS Agent apps
                 try
                 {
-                    Logger.Log("Trying Method 1: InvokeMember Load");
-                    object[] loadArgs = new object[] { characterPath, 0, 0 };
-                    serverType.InvokeMember("Load",
-                        System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
-                        null, _agentServer, loadArgs);
+                    Logger.Log("Trying Method 1: Characters.Load via dynamic binding");
                     
-                    // Get the character ID from the output parameters
-                    _characterId = Convert.ToInt32(loadArgs[1]);
+                    // Cast to dynamic to use IDispatch late binding
+                    dynamic agentCtl = _agentServer;
                     
-                    // Get the character object
-                    _character = serverType.InvokeMember("Character",
-                        System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
-                        null, _agentServer, new object[] { _characterId });
+                    // Get the Characters collection
+                    dynamic characters = agentCtl.Characters;
+                    Logger.Log("Got Characters collection");
                     
+                    // Load the character - this adds it to the collection
+                    characters.Load(charName, characterPath);
+                    Logger.Log($"Called Characters.Load({charName}, {characterPath})");
+                    
+                    // Get the character from the collection by name
+                    _character = characters.Character(charName);
+                    Logger.Log("Got character object from collection");
+                    
+                    _characterId = charName.GetHashCode();
                     _isLoaded = true;
-                    Logger.Log($"SUCCESS: Character loaded using InvokeMember Load");
+                    Logger.Log($"SUCCESS: Character '{charName}' loaded successfully");
                     return;
                 }
                 catch (Exception ex)
                 {
                     firstException = ex;
-                    Logger.LogError("Method 1 (InvokeMember Load) failed", ex);
+                    Logger.LogError("Method 1 (Characters.Load) failed", ex);
                 }
 
-                // Method 2: Try AgentServer.Load with dynamic (IAgentEx interface)
+                // Method 2: Direct indexer access after load
                 try
                 {
-                    Logger.Log("Trying Method 2: dynamic AgentServer.Load");
-                    object charId = null;
-                    object requestId = null;
-                    _agentServer.Load(characterPath, ref charId, ref requestId);
-                    _characterId = Convert.ToInt32(charId);
-                    _character = _agentServer.Character(_characterId);
+                    Logger.Log("Trying Method 2: Characters indexer via dynamic binding");
+                    
+                    dynamic agentCtl = _agentServer;
+                    dynamic characters = agentCtl.Characters;
+                    
+                    // Try loading again in case first attempt partially worked
+                    try { characters.Load(charName, characterPath); } catch { }
+                    
+                    // Access character via indexer
+                    _character = characters[charName];
+                    Logger.Log("Got character object via indexer");
+                    
+                    _characterId = charName.GetHashCode();
                     _isLoaded = true;
-                    Logger.Log($"SUCCESS: Character loaded using dynamic AgentServer.Load");
+                    Logger.Log($"SUCCESS: Character '{charName}' loaded via indexer");
                     return;
                 }
                 catch (Exception ex)
                 {
                     secondException = ex;
-                    Logger.LogError("Method 2 (dynamic AgentServer.Load) failed", ex);
-                }
-
-                // Method 3: Try Characters collection using InvokeMember
-                try
-                {
-                    Logger.Log("Trying Method 3: InvokeMember Characters.Load");
-                    string charName = Path.GetFileNameWithoutExtension(characterPath);
-                    
-                    // Get Characters collection
-                    object characters = serverType.InvokeMember("Characters",
-                        System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
-                        null, _agentServer, null);
-                    
-                    if (characters != null)
-                    {
-                        Type charsType = characters.GetType();
-                        
-                        // Call Load on Characters collection
-                        charsType.InvokeMember("Load",
-                            System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
-                            null, characters, new object[] { charName, characterPath });
-                        
-                        // Get the character by name
-                        _character = charsType.InvokeMember("Character",
-                            System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
-                            null, characters, new object[] { charName });
-                        
-                        _characterId = charName.GetHashCode();
-                        _isLoaded = true;
-                        Logger.Log($"SUCCESS: Character loaded using InvokeMember Characters.Load");
-                        return;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    thirdException = ex;
-                    Logger.LogError("Method 3 (InvokeMember Characters.Load) failed", ex);
-                }
-                
-                // Method 4: Try Agent.Control style with dynamic (Characters collection)
-                try
-                {
-                    Logger.Log("Trying Method 4: dynamic Characters.Load");
-                    string charName = Path.GetFileNameWithoutExtension(characterPath);
-                    dynamic characters = _agentServer.Characters;
-                    characters.Load(charName, characterPath);
-                    _character = characters[charName];
-                    _characterId = charName.GetHashCode();
-                    _isLoaded = true;
-                    Logger.Log($"SUCCESS: Character loaded using dynamic Characters.Load");
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    fourthException = ex;
-                    Logger.LogError("Method 4 (dynamic Characters.Load) failed", ex);
+                    Logger.LogError("Method 2 (Characters indexer) failed", ex);
                 }
 
                 // All methods failed
                 string errorMsg = $"Failed to load character from '{characterPath}'.\n\n";
                 if (firstException != null)
-                    errorMsg += $"Method 1 (InvokeMember Load): {firstException.Message}\n";
+                    errorMsg += $"Method 1 (Characters.Load): {firstException.Message}\n";
                 if (secondException != null)
-                    errorMsg += $"Method 2 (dynamic Load): {secondException.Message}\n";
-                if (thirdException != null)
-                    errorMsg += $"Method 3 (InvokeMember Characters): {thirdException.Message}\n";
-                if (fourthException != null)
-                    errorMsg += $"Method 4 (dynamic Characters): {fourthException.Message}\n";
+                    errorMsg += $"Method 2 (Characters indexer): {secondException.Message}\n";
                 
+                errorMsg += $"\nThe type library may not be registered. Try running as Administrator:\n";
+                errorMsg += $"regsvr32 \"C:\\Windows\\msagent\\agentctl.dll\"\n";
                 errorMsg += $"\nSee log file for details: {Logger.LogFilePath}";
                 
                 Logger.LogError("All character loading methods failed");
