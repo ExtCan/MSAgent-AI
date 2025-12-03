@@ -51,6 +51,8 @@ namespace MSAgentAI.Agent
         {
             Exception lastException = null;
             
+            Logger.Log("Initializing MS Agent...");
+            
             // Method 1: Try AgentServer.Agent (the COM server, not the ActiveX control)
             if (TryCreateAgentServer("AgentServer.Agent", ref lastException))
                 return;
@@ -76,6 +78,8 @@ namespace MSAgentAI.Agent
             // Check if MS Agent is installed by looking at registry
             string diagnosticInfo = GetMSAgentDiagnostics();
             
+            Logger.LogError("Failed to initialize MS Agent", lastException);
+            
             throw new AgentException(
                 $"Failed to initialize MS Agent.\n\n" +
                 $"Diagnostic Information:\n{diagnosticInfo}\n\n" +
@@ -90,35 +94,42 @@ namespace MSAgentAI.Agent
         {
             try
             {
+                Logger.Log($"Trying to create agent server with ProgID: {progId}");
+                
                 Type agentType = Type.GetTypeFromProgID(progId, false);
-                if (agentType == null) return false;
+                if (agentType == null)
+                {
+                    Logger.Log($"ProgID {progId} not found");
+                    return false;
+                }
                 
                 _agentServer = Activator.CreateInstance(agentType);
-                if (_agentServer == null) return false;
+                if (_agentServer == null)
+                {
+                    Logger.Log($"Failed to create instance for ProgID {progId}");
+                    return false;
+                }
                 
-                // Try to access the Characters collection to verify it works
+                // Try to set Connected = true using InvokeMember (avoids type library requirement)
                 try
                 {
-                    var test = _agentServer.Characters;
+                    agentType.InvokeMember("Connected", 
+                        System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                        null, _agentServer, new object[] { true });
+                    Logger.Log($"Set Connected = true for {progId}");
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Some ProgIDs need Connected = true first
-                    try
-                    {
-                        _agentServer.Connected = true;
-                    }
-                    catch
-                    {
-                        // Connected property may not exist on AgentServer
-                    }
+                    Logger.Log($"Connected property not available or failed: {ex.Message}");
+                    // Connected property may not exist on AgentServer - continue anyway
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"Successfully initialized MS Agent using ProgID: {progId}");
+                Logger.Log($"Successfully initialized MS Agent using ProgID: {progId}");
                 return true;
             }
             catch (Exception ex)
             {
+                Logger.LogError($"Failed to create agent server with ProgID {progId}", ex);
                 lastException = ex;
                 _agentServer = null;
                 return false;
@@ -129,35 +140,42 @@ namespace MSAgentAI.Agent
         {
             try
             {
+                Logger.Log($"Trying to create agent server with CLSID: {clsid}");
+                
                 Type agentType = Type.GetTypeFromCLSID(clsid, false);
-                if (agentType == null) return false;
+                if (agentType == null)
+                {
+                    Logger.Log($"CLSID {clsid} not found");
+                    return false;
+                }
                 
                 _agentServer = Activator.CreateInstance(agentType);
-                if (_agentServer == null) return false;
+                if (_agentServer == null)
+                {
+                    Logger.Log($"Failed to create instance for CLSID {clsid}");
+                    return false;
+                }
                 
-                // Try to access the Characters collection to verify it works
+                // Try to set Connected = true using InvokeMember (avoids type library requirement)
                 try
                 {
-                    var test = _agentServer.Characters;
+                    agentType.InvokeMember("Connected", 
+                        System.Reflection.BindingFlags.SetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                        null, _agentServer, new object[] { true });
+                    Logger.Log($"Set Connected = true for CLSID {clsid}");
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Some CLSIDs need Connected = true first
-                    try
-                    {
-                        _agentServer.Connected = true;
-                    }
-                    catch
-                    {
-                        // Connected property may not exist on AgentServer
-                    }
+                    Logger.Log($"Connected property not available or failed: {ex.Message}");
+                    // Connected property may not exist on AgentServer - continue anyway
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"Successfully initialized MS Agent using CLSID: {clsid}");
+                Logger.Log($"Successfully initialized MS Agent using CLSID: {clsid}");
                 return true;
             }
             catch (Exception ex)
             {
+                Logger.LogError($"Failed to create agent server with CLSID {clsid}", ex);
                 lastException = ex;
                 _agentServer = null;
                 return false;
@@ -336,6 +354,9 @@ namespace MSAgentAI.Agent
             Exception firstException = null;
             Exception secondException = null;
             Exception thirdException = null;
+            Exception fourthException = null;
+            
+            Type serverType = _agentServer.GetType();
             
             try
             {
@@ -345,71 +366,118 @@ namespace MSAgentAI.Agent
                     UnloadCharacter();
                 }
 
-                // Method 1: Try AgentServer.Load (IAgentEx interface)
+                // Method 1: Try using InvokeMember to call Load (avoids type library requirement)
                 try
                 {
-                    Logger.Log("Trying Method 1: AgentServer.Load");
+                    Logger.Log("Trying Method 1: InvokeMember Load");
+                    object[] loadArgs = new object[] { characterPath, 0, 0 };
+                    serverType.InvokeMember("Load",
+                        System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                        null, _agentServer, loadArgs);
+                    
+                    // Get the character ID from the output parameters
+                    _characterId = Convert.ToInt32(loadArgs[1]);
+                    
+                    // Get the character object
+                    _character = serverType.InvokeMember("Character",
+                        System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                        null, _agentServer, new object[] { _characterId });
+                    
+                    _isLoaded = true;
+                    Logger.Log($"SUCCESS: Character loaded using InvokeMember Load");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    firstException = ex;
+                    Logger.LogError("Method 1 (InvokeMember Load) failed", ex);
+                }
+
+                // Method 2: Try AgentServer.Load with dynamic (IAgentEx interface)
+                try
+                {
+                    Logger.Log("Trying Method 2: dynamic AgentServer.Load");
                     object charId = null;
                     object requestId = null;
                     _agentServer.Load(characterPath, ref charId, ref requestId);
                     _characterId = Convert.ToInt32(charId);
                     _character = _agentServer.Character(_characterId);
                     _isLoaded = true;
-                    Logger.Log($"SUCCESS: Character loaded using AgentServer.Load");
+                    Logger.Log($"SUCCESS: Character loaded using dynamic AgentServer.Load");
                     return;
                 }
                 catch (Exception ex)
                 {
-                    firstException = ex;
-                    Logger.LogError("Method 1 (AgentServer.Load) failed", ex);
+                    secondException = ex;
+                    Logger.LogError("Method 2 (dynamic AgentServer.Load) failed", ex);
                 }
 
-                // Method 2: Try Agent.Control style (Characters collection)
+                // Method 3: Try Characters collection using InvokeMember
                 try
                 {
-                    Logger.Log("Trying Method 2: Characters.Load");
+                    Logger.Log("Trying Method 3: InvokeMember Characters.Load");
+                    string charName = Path.GetFileNameWithoutExtension(characterPath);
+                    
+                    // Get Characters collection
+                    object characters = serverType.InvokeMember("Characters",
+                        System.Reflection.BindingFlags.GetProperty | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                        null, _agentServer, null);
+                    
+                    if (characters != null)
+                    {
+                        Type charsType = characters.GetType();
+                        
+                        // Call Load on Characters collection
+                        charsType.InvokeMember("Load",
+                            System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                            null, characters, new object[] { charName, characterPath });
+                        
+                        // Get the character by name
+                        _character = charsType.InvokeMember("Character",
+                            System.Reflection.BindingFlags.InvokeMethod | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public,
+                            null, characters, new object[] { charName });
+                        
+                        _characterId = charName.GetHashCode();
+                        _isLoaded = true;
+                        Logger.Log($"SUCCESS: Character loaded using InvokeMember Characters.Load");
+                        return;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    thirdException = ex;
+                    Logger.LogError("Method 3 (InvokeMember Characters.Load) failed", ex);
+                }
+                
+                // Method 4: Try Agent.Control style with dynamic (Characters collection)
+                try
+                {
+                    Logger.Log("Trying Method 4: dynamic Characters.Load");
                     string charName = Path.GetFileNameWithoutExtension(characterPath);
                     dynamic characters = _agentServer.Characters;
                     characters.Load(charName, characterPath);
                     _character = characters[charName];
                     _characterId = charName.GetHashCode();
                     _isLoaded = true;
-                    Logger.Log($"SUCCESS: Character loaded using Characters.Load");
+                    Logger.Log($"SUCCESS: Character loaded using dynamic Characters.Load");
                     return;
                 }
                 catch (Exception ex)
                 {
-                    secondException = ex;
-                    Logger.LogError("Method 2 (Characters.Load) failed", ex);
-                }
-                
-                // Method 3: Try loading with just the filename (some versions expect this)
-                try
-                {
-                    Logger.Log("Trying Method 3: Characters.Character");
-                    string charName = Path.GetFileNameWithoutExtension(characterPath);
-                    dynamic characters = _agentServer.Characters;
-                    characters.Load(charName, (object)characterPath);
-                    _character = characters.Character(charName);
-                    _characterId = charName.GetHashCode();
-                    _isLoaded = true;
-                    Logger.Log($"SUCCESS: Character loaded using Characters.Character");
-                    return;
-                }
-                catch (Exception ex)
-                {
-                    thirdException = ex;
-                    Logger.LogError("Method 3 (Characters.Character) failed", ex);
+                    fourthException = ex;
+                    Logger.LogError("Method 4 (dynamic Characters.Load) failed", ex);
                 }
 
                 // All methods failed
                 string errorMsg = $"Failed to load character from '{characterPath}'.\n\n";
                 if (firstException != null)
-                    errorMsg += $"Method 1 (AgentServer.Load): {firstException.Message}\n";
+                    errorMsg += $"Method 1 (InvokeMember Load): {firstException.Message}\n";
                 if (secondException != null)
-                    errorMsg += $"Method 2 (Characters.Load): {secondException.Message}\n";
+                    errorMsg += $"Method 2 (dynamic Load): {secondException.Message}\n";
                 if (thirdException != null)
-                    errorMsg += $"Method 3 (Characters.Character): {thirdException.Message}\n";
+                    errorMsg += $"Method 3 (InvokeMember Characters): {thirdException.Message}\n";
+                if (fourthException != null)
+                    errorMsg += $"Method 4 (dynamic Characters): {fourthException.Message}\n";
                 
                 errorMsg += $"\nSee log file for details: {Logger.LogFilePath}";
                 
