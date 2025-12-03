@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace MSAgentAI.Agent
 {
@@ -10,9 +12,9 @@ namespace MSAgentAI.Agent
     /// </summary>
     public class AgentManager : IDisposable
     {
-        private dynamic _agentControl;
+        private dynamic _agentServer;
         private dynamic _character;
-        private string _characterId;
+        private int _characterId;
         private bool _isLoaded;
         private bool _disposed;
 
@@ -26,54 +28,227 @@ namespace MSAgentAI.Agent
         public string DefaultCharacterPath { get; set; } = @"C:\Windows\msagent\chars";
 
         public bool IsLoaded => _isLoaded;
-        public string CharacterName => _character?.Name ?? string.Empty;
-        public string CharacterDescription => _character?.Description ?? string.Empty;
+        public string CharacterName => _isLoaded && _character != null ? GetCharacterName() : string.Empty;
+        public string CharacterDescription => _isLoaded && _character != null ? GetCharacterDescription() : string.Empty;
+        
+        private string GetCharacterName()
+        {
+            try { return _character.Name; } catch { return string.Empty; }
+        }
+        
+        private string GetCharacterDescription()
+        {
+            try { return _character.Description; } catch { return string.Empty; }
+        }
 
         public AgentManager()
         {
+            InitializeAgent();
+        }
+        
+        private void InitializeAgent()
+        {
+            Exception lastException = null;
+            
+            // Method 1: Try AgentServer.Agent (the COM server, not the ActiveX control)
+            if (TryCreateAgentServer("AgentServer.Agent", ref lastException))
+                return;
+            
+            // Method 2: Try Agent.Control.2 (ActiveX style, may work in some cases)
+            if (TryCreateAgentServer("Agent.Control.2", ref lastException))
+                return;
+                
+            // Method 3: Try Agent.Control.1 
+            if (TryCreateAgentServer("Agent.Control.1", ref lastException))
+                return;
+            
+            // Method 4: Try by CLSID for AgentServer
+            // AgentServer CLSID: {D45FD31B-5C6E-11D1-9EC1-00C04FD7081F}
+            if (TryCreateAgentServerByCLSID(new Guid("D45FD31B-5C6E-11D1-9EC1-00C04FD7081F"), ref lastException))
+                return;
+            
+            // Method 5: Try by CLSID for Agent Control
+            // Agent.Control CLSID: {D45FD31D-5C6E-11D1-9EC1-00C04FD7081F}
+            if (TryCreateAgentServerByCLSID(new Guid("D45FD31D-5C6E-11D1-9EC1-00C04FD7081F"), ref lastException))
+                return;
+            
+            // Check if MS Agent is installed by looking at registry
+            string diagnosticInfo = GetMSAgentDiagnostics();
+            
+            throw new AgentException(
+                $"Failed to initialize MS Agent.\n\n" +
+                $"Diagnostic Information:\n{diagnosticInfo}\n\n" +
+                $"Please ensure:\n" +
+                $"1. Microsoft Agent is installed (run regsvr32 agentsvr.exe as Admin)\n" +
+                $"2. AgentServer is registered (regsvr32 agentctl.dll as Admin)\n" +
+                $"3. You're running on a compatible Windows version\n\n" +
+                $"Last Error: {lastException?.Message ?? "Unknown"}", lastException);
+        }
+        
+        private bool TryCreateAgentServer(string progId, ref Exception lastException)
+        {
             try
             {
-                // Try to create the MS Agent control using different ProgIDs
-                Type agentType = Type.GetTypeFromProgID("Agent.Control.2");
+                Type agentType = Type.GetTypeFromProgID(progId, false);
+                if (agentType == null) return false;
                 
-                // Try alternative ProgID if the first one fails
-                if (agentType == null)
+                _agentServer = Activator.CreateInstance(agentType);
+                if (_agentServer == null) return false;
+                
+                // Try to access the Characters collection to verify it works
+                try
                 {
-                    agentType = Type.GetTypeFromProgID("Agent.Control.1");
+                    var test = _agentServer.Characters;
+                }
+                catch
+                {
+                    // Some ProgIDs need Connected = true first
+                    try
+                    {
+                        _agentServer.Connected = true;
+                    }
+                    catch
+                    {
+                        // Connected property may not exist on AgentServer
+                    }
                 }
                 
-                // Try the CLSID directly if ProgID lookup fails
-                if (agentType == null)
-                {
-                    agentType = Type.GetTypeFromCLSID(new Guid("D45FD31D-5C6E-11D1-9EC1-00C04FD7081F"), false);
-                }
-                
-                if (agentType == null)
-                {
-                    throw new AgentException("MS Agent COM component not found. Please ensure MS Agent is properly installed and registered.");
-                }
-                
-                _agentControl = Activator.CreateInstance(agentType);
-                
-                if (_agentControl == null)
-                {
-                    throw new AgentException("Failed to create MS Agent control instance.");
-                }
-                
-                _agentControl.Connected = true;
-            }
-            catch (AgentException)
-            {
-                throw;
-            }
-            catch (COMException ex)
-            {
-                throw new AgentException($"Failed to initialize MS Agent control. COM Error: 0x{ex.ErrorCode:X8}. Ensure MS Agent is installed and registered.", ex);
+                System.Diagnostics.Debug.WriteLine($"Successfully initialized MS Agent using ProgID: {progId}");
+                return true;
             }
             catch (Exception ex)
             {
-                throw new AgentException($"Failed to initialize MS Agent control: {ex.Message}", ex);
+                lastException = ex;
+                _agentServer = null;
+                return false;
             }
+        }
+        
+        private bool TryCreateAgentServerByCLSID(Guid clsid, ref Exception lastException)
+        {
+            try
+            {
+                Type agentType = Type.GetTypeFromCLSID(clsid, false);
+                if (agentType == null) return false;
+                
+                _agentServer = Activator.CreateInstance(agentType);
+                if (_agentServer == null) return false;
+                
+                // Try to access the Characters collection to verify it works
+                try
+                {
+                    var test = _agentServer.Characters;
+                }
+                catch
+                {
+                    // Some CLSIDs need Connected = true first
+                    try
+                    {
+                        _agentServer.Connected = true;
+                    }
+                    catch
+                    {
+                        // Connected property may not exist on AgentServer
+                    }
+                }
+                
+                System.Diagnostics.Debug.WriteLine($"Successfully initialized MS Agent using CLSID: {clsid}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                lastException = ex;
+                _agentServer = null;
+                return false;
+            }
+        }
+        
+        private string GetMSAgentDiagnostics()
+        {
+            var diagnostics = new List<string>();
+            
+            // Check for Agent Server registration
+            try
+            {
+                using (var key = Registry.ClassesRoot.OpenSubKey(@"CLSID\{D45FD31B-5C6E-11D1-9EC1-00C04FD7081F}"))
+                {
+                    diagnostics.Add(key != null ? "✓ AgentServer CLSID registered" : "✗ AgentServer CLSID NOT registered");
+                }
+            }
+            catch
+            {
+                diagnostics.Add("✗ Cannot check AgentServer CLSID");
+            }
+            
+            // Check for Agent Control registration
+            try
+            {
+                using (var key = Registry.ClassesRoot.OpenSubKey(@"CLSID\{D45FD31D-5C6E-11D1-9EC1-00C04FD7081F}"))
+                {
+                    diagnostics.Add(key != null ? "✓ Agent.Control CLSID registered" : "✗ Agent.Control CLSID NOT registered");
+                }
+            }
+            catch
+            {
+                diagnostics.Add("✗ Cannot check Agent.Control CLSID");
+            }
+            
+            // Check for AgentServer.Agent ProgID
+            try
+            {
+                using (var key = Registry.ClassesRoot.OpenSubKey(@"AgentServer.Agent"))
+                {
+                    diagnostics.Add(key != null ? "✓ AgentServer.Agent ProgID registered" : "✗ AgentServer.Agent ProgID NOT registered");
+                }
+            }
+            catch
+            {
+                diagnostics.Add("✗ Cannot check AgentServer.Agent ProgID");
+            }
+            
+            // Check for Agent.Control.2 ProgID
+            try
+            {
+                using (var key = Registry.ClassesRoot.OpenSubKey(@"Agent.Control.2"))
+                {
+                    diagnostics.Add(key != null ? "✓ Agent.Control.2 ProgID registered" : "✗ Agent.Control.2 ProgID NOT registered");
+                }
+            }
+            catch
+            {
+                diagnostics.Add("✗ Cannot check Agent.Control.2 ProgID");
+            }
+            
+            // Check for MS Agent DLLs
+            string sysDir = Environment.SystemDirectory;
+            string agentDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "msagent");
+            
+            string[] filesToCheck = new[]
+            {
+                Path.Combine(sysDir, "agentsvr.exe"),
+                Path.Combine(sysDir, "agentctl.dll"),
+                Path.Combine(agentDir, "agentctl.dll"),
+                Path.Combine(agentDir, "agentdpv.dll")
+            };
+            
+            foreach (var file in filesToCheck)
+            {
+                diagnostics.Add(File.Exists(file) ? $"✓ {file} exists" : $"✗ {file} NOT found");
+            }
+            
+            // Check for character files
+            string charsDir = Path.Combine(agentDir, "chars");
+            if (Directory.Exists(charsDir))
+            {
+                var charFiles = Directory.GetFiles(charsDir, "*.acs");
+                diagnostics.Add($"✓ Character directory exists with {charFiles.Length} character(s)");
+            }
+            else
+            {
+                diagnostics.Add("✗ Character directory NOT found");
+            }
+            
+            return string.Join("\n", diagnostics);
         }
 
         /// <summary>
@@ -100,25 +275,39 @@ namespace MSAgentAI.Agent
         /// </summary>
         public void LoadCharacter(string characterPath)
         {
-            if (_agentControl == null)
+            if (_agentServer == null)
             {
-                throw new AgentException("Agent control not initialized.");
+                throw new AgentException("Agent server not initialized.");
             }
 
             try
             {
                 // Unload any existing character
-                if (_isLoaded && !string.IsNullOrEmpty(_characterId))
+                if (_isLoaded && _characterId != 0)
                 {
                     UnloadCharacter();
                 }
 
-                // Generate a unique ID for this character
-                _characterId = Path.GetFileNameWithoutExtension(characterPath);
-
-                // Load the character
-                _agentControl.Characters.Load(_characterId, characterPath);
-                _character = _agentControl.Characters[_characterId];
+                // Load the character - for AgentServer we get a character ID back
+                object charId = null;
+                object requestId = null;
+                
+                try
+                {
+                    // AgentServer.Load method returns the character ID
+                    _agentServer.Load(characterPath, ref charId, ref requestId);
+                    _characterId = Convert.ToInt32(charId);
+                    _character = _agentServer.Character(_characterId);
+                }
+                catch
+                {
+                    // Try the Agent.Control style (Characters collection)
+                    string charName = Path.GetFileNameWithoutExtension(characterPath);
+                    _agentServer.Characters.Load(charName, characterPath);
+                    _character = _agentServer.Characters[charName];
+                    _characterId = charName.GetHashCode(); // Use hash as pseudo-ID
+                }
+                
                 _isLoaded = true;
             }
             catch (COMException ex)
@@ -132,11 +321,28 @@ namespace MSAgentAI.Agent
         /// </summary>
         public void UnloadCharacter()
         {
-            if (_agentControl != null && !string.IsNullOrEmpty(_characterId))
+            if (_agentServer != null && _characterId != 0)
             {
                 try
                 {
-                    _agentControl.Characters.Unload(_characterId);
+                    // Try AgentServer.Unload first
+                    try
+                    {
+                        _agentServer.Unload(_characterId);
+                    }
+                    catch
+                    {
+                        // Fall back to Characters.Unload for Agent.Control style
+                        try
+                        {
+                            if (_character != null)
+                            {
+                                string name = _character.Name;
+                                _agentServer.Characters.Unload(name);
+                            }
+                        }
+                        catch { }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -144,7 +350,7 @@ namespace MSAgentAI.Agent
                 }
 
                 _character = null;
-                _characterId = null;
+                _characterId = 0;
                 _isLoaded = false;
             }
         }
@@ -329,18 +535,24 @@ namespace MSAgentAI.Agent
             {
                 UnloadCharacter();
 
-                if (_agentControl != null)
+                if (_agentServer != null)
                 {
                     try
                     {
-                        _agentControl.Connected = false;
-                        Marshal.ReleaseComObject(_agentControl);
+                        // Try to disconnect if the property exists
+                        try
+                        {
+                            _agentServer.Connected = false;
+                        }
+                        catch { }
+                        
+                        Marshal.ReleaseComObject(_agentServer);
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Error disposing agent control: {ex.Message}");
+                        System.Diagnostics.Debug.WriteLine($"Error disposing agent server: {ex.Message}");
                     }
-                    _agentControl = null;
+                    _agentServer = null;
                 }
 
                 _disposed = true;
