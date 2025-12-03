@@ -17,6 +17,9 @@ namespace MSAgentAI.UI
     /// </summary>
     public class SettingsForm : Form
     {
+        // Constants
+        private const double VolumeScaleFactor = 655.35; // Converts 0-100 to 0-65535 for SAPI4
+
         private AppSettings _settings;
         private AgentManager _agentManager;
         private Sapi4Manager _voiceManager;
@@ -503,7 +506,7 @@ namespace MSAgentAI.UI
             LoadVoices();
             _speedTrackBar.Value = Math.Max(_speedTrackBar.Minimum, Math.Min(_speedTrackBar.Maximum, _settings.VoiceSpeed));
             _pitchTrackBar.Value = Math.Max(_pitchTrackBar.Minimum, Math.Min(_pitchTrackBar.Maximum, _settings.VoicePitch));
-            _volumeTrackBar.Value = (int)(_settings.VoiceVolume / 655.35); // Convert from 0-65535 to 0-100
+            _volumeTrackBar.Value = (int)(_settings.VoiceVolume / VolumeScaleFactor); // Convert from 0-65535 to 0-100
 
             // Ollama settings
             _ollamaUrlTextBox.Text = _settings.OllamaUrl;
@@ -541,7 +544,7 @@ namespace MSAgentAI.UI
             }
             _settings.VoiceSpeed = _speedTrackBar.Value;
             _settings.VoicePitch = _pitchTrackBar.Value;
-            _settings.VoiceVolume = (int)(_volumeTrackBar.Value * 655.35);
+            _settings.VoiceVolume = (int)(_volumeTrackBar.Value * VolumeScaleFactor);
 
             // Ollama settings
             _settings.OllamaUrl = _ollamaUrlTextBox.Text;

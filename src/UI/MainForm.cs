@@ -17,6 +17,9 @@ namespace MSAgentAI.UI
     /// </summary>
     public partial class MainForm : Form
     {
+        // Constants
+        private const int IdleDialogChancePercent = 20; // 20% chance when idle timer ticks
+
         private AgentManager _agentManager;
         private Sapi4Manager _voiceManager;
         private OllamaClient _ollamaClient;
@@ -334,7 +337,18 @@ namespace MSAgentAI.UI
                 {
                     _agentManager.PlayAnimation("Wave");
                     _agentManager.Speak(exitLine);
-                    Thread.Sleep(2000); // Wait for speech
+                    // Use a timer to wait for speech before exiting instead of blocking the UI
+                    var exitTimer = new System.Windows.Forms.Timer { Interval = 2000 };
+                    exitTimer.Tick += (s, args) =>
+                    {
+                        exitTimer.Stop();
+                        exitTimer.Dispose();
+                        _agentManager?.Hide(false);
+                        CleanUp();
+                        Application.Exit();
+                    };
+                    exitTimer.Start();
+                    return;
                 }
                 _agentManager.Hide(false);
             }
@@ -351,7 +365,7 @@ namespace MSAgentAI.UI
 
         private void OnIdleTimerTick(object sender, EventArgs e)
         {
-            if (_agentManager?.IsLoaded == true && _random.Next(100) < 20) // 20% chance
+            if (_agentManager?.IsLoaded == true && _random.Next(100) < IdleDialogChancePercent)
             {
                 var idleLine = AppSettings.GetRandomLine(_settings.IdleLines);
                 if (!string.IsNullOrEmpty(idleLine))
@@ -381,7 +395,10 @@ namespace MSAgentAI.UI
                         }
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Random dialog error: {ex.Message}");
+                }
             }
         }
 
@@ -433,7 +450,10 @@ namespace MSAgentAI.UI
                         _agentManager.Show(false);
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to reload character: {ex.Message}");
+                }
             }
 
             // Save settings

@@ -109,7 +109,10 @@ namespace MSAgentAI.Agent
                 {
                     _agentControl.Characters.Unload(_characterId);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error unloading character: {ex.Message}");
+                }
 
                 _character = null;
                 _characterId = null;
@@ -171,7 +174,10 @@ namespace MSAgentAI.Agent
                 {
                     _character.Play(animationName);
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error playing animation '{animationName}': {ex.Message}");
+                }
             }
         }
 
@@ -244,7 +250,10 @@ namespace MSAgentAI.Agent
                         animations.Add(anim.ToString());
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error getting animations: {ex.Message}");
+                }
             }
 
             // Return common MS Agent animations if we couldn't get them dynamically
@@ -298,7 +307,10 @@ namespace MSAgentAI.Agent
                         _agentControl.Connected = false;
                         Marshal.ReleaseComObject(_agentControl);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error disposing agent control: {ex.Message}");
+                    }
                     _agentControl = null;
                 }
 

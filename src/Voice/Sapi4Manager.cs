@@ -81,7 +81,10 @@ namespace MSAgentAI.Voice
                                     }
                                 }
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Error reading voice key: {ex.Message}");
+                            }
                         }
                     }
                 }
@@ -114,7 +117,10 @@ namespace MSAgentAI.Voice
                                     }
                                 }
                             }
-                            catch { }
+                            catch (Exception ex)
+                            {
+                                System.Diagnostics.Debug.WriteLine($"Error reading legacy voice key: {ex.Message}");
+                            }
                         }
                     }
                 }
@@ -187,7 +193,10 @@ namespace MSAgentAI.Voice
                 {
                     _voiceEngine.StopSpeaking();
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error stopping speech: {ex.Message}");
+                }
             }
         }
 
@@ -210,7 +219,10 @@ namespace MSAgentAI.Voice
                         _voiceEngine.UnRegister();
                         Marshal.ReleaseComObject(_voiceEngine);
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error disposing voice engine: {ex.Message}");
+                    }
                     _voiceEngine = null;
                 }
 
