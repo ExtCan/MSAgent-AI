@@ -13,18 +13,30 @@ A Windows desktop friend application inspired by BonziBUDDY and CyberBuddy, usin
 
 ## Requirements
 
-- Windows with .NET Framework 4.8 or later
-- Microsoft Agent (msagent.exe) installed
-- SAPI4 Text-to-Speech engine installed
-- Ollama (optional, for AI chat features) - https://ollama.ai
+See **[REQUIREMENTS.txt](REQUIREMENTS.txt)** for detailed download links.
+
+- Windows 10/11 with .NET Framework 4.8 or later
+- **DoubleAgent** (RECOMMENDED) - Modern MS Agent replacement: https://doubleagent.sourceforge.net/
+  - Or original Microsoft Agent with manual COM registration
+- SAPI4 Text-to-Speech engine: https://www.microsoft.com/en-us/download/details.aspx?id=10121
+- Ollama (optional, for AI chat features): https://ollama.ai
 
 ## Installation
 
-1. Install Microsoft Agent on your Windows system
-2. Install SAPI4 and at least one SAPI4 voice
-3. Download and install Ollama if you want AI chat features
-4. Build the application using Visual Studio or `dotnet build`
-5. Run the MSAgentAI.exe
+1. **Install DoubleAgent** from https://doubleagent.sourceforge.net/ (handles all COM registration automatically)
+2. Install SAPI 4.0a SDK for voices
+3. Download and install Ollama if you want AI chat features: `ollama pull llama3.2`
+4. Download the latest release from GitHub Actions or build with `dotnet build`
+5. Run MSAgentAI.exe
+
+### Troubleshooting
+
+If you see "Library not registered" errors:
+- **Solution**: Install DoubleAgent instead of original MS Agent
+- DoubleAgent properly registers all COM components on modern Windows
+
+Log file location: `MSAgentAI.log` (same folder as the executable)
+Access via tray menu: **View Log...**
 
 ## Configuration
 
