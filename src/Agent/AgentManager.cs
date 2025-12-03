@@ -33,17 +33,46 @@ namespace MSAgentAI.Agent
         {
             try
             {
-                // Create the MS Agent control
+                // Try to create the MS Agent control using different ProgIDs
                 Type agentType = Type.GetTypeFromProgID("Agent.Control.2");
-                if (agentType != null)
+                
+                // Try alternative ProgID if the first one fails
+                if (agentType == null)
                 {
-                    _agentControl = Activator.CreateInstance(agentType);
-                    _agentControl.Connected = true;
+                    agentType = Type.GetTypeFromProgID("Agent.Control.1");
                 }
+                
+                // Try the CLSID directly if ProgID lookup fails
+                if (agentType == null)
+                {
+                    agentType = Type.GetTypeFromCLSID(new Guid("D45FD31D-5C6E-11D1-9EC1-00C04FD7081F"), false);
+                }
+                
+                if (agentType == null)
+                {
+                    throw new AgentException("MS Agent COM component not found. Please ensure MS Agent is properly installed and registered.");
+                }
+                
+                _agentControl = Activator.CreateInstance(agentType);
+                
+                if (_agentControl == null)
+                {
+                    throw new AgentException("Failed to create MS Agent control instance.");
+                }
+                
+                _agentControl.Connected = true;
+            }
+            catch (AgentException)
+            {
+                throw;
             }
             catch (COMException ex)
             {
-                throw new AgentException("Failed to create MS Agent control. Ensure MS Agent is installed.", ex);
+                throw new AgentException($"Failed to initialize MS Agent control. COM Error: 0x{ex.ErrorCode:X8}. Ensure MS Agent is installed and registered.", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new AgentException($"Failed to initialize MS Agent control: {ex.Message}", ex);
             }
         }
 

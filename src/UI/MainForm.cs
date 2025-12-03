@@ -90,7 +90,12 @@ namespace MSAgentAI.UI
             catch (Exception ex)
             {
                 ShowError("Agent Initialization Error", 
-                    $"Failed to initialize MS Agent. Please ensure MS Agent is installed.\n\nError: {ex.Message}");
+                    $"Failed to initialize MS Agent.\n\n" +
+                    $"Possible solutions:\n" +
+                    $"1. Ensure MS Agent is installed (msagent.exe)\n" +
+                    $"2. Run the application as Administrator\n" +
+                    $"3. Register the MS Agent COM components manually\n\n" +
+                    $"Error details: {ex.Message}");
             }
 
             try
