@@ -356,13 +356,24 @@ namespace MSAgentAI.Agent
             Exception thirdException = null;
             Exception fourthException = null;
             
-            Type serverType = _agentServer.GetType();
+            Type serverType = null;
+            try
+            {
+                serverType = _agentServer.GetType();
+                Logger.Log($"Agent server type: {serverType?.FullName ?? "null"}");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to get agent server type", ex);
+                throw new AgentException($"Failed to get agent server type: {ex.Message}", ex);
+            }
             
             try
             {
                 // Unload any existing character
                 if (_isLoaded && _characterId != 0)
                 {
+                    Logger.Log("Unloading existing character");
                     UnloadCharacter();
                 }
 
