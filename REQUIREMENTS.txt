@@ -1,0 +1,152 @@
+================================================================================
+                    MSAgent-AI - System Requirements
+================================================================================
+
+This application requires several legacy Microsoft components to function
+properly. Follow this guide to install all required dependencies.
+
+================================================================================
+1. .NET FRAMEWORK 4.8
+================================================================================
+
+Required to run the application.
+
+Download: https://dotnet.microsoft.com/en-us/download/dotnet-framework/net48
+
+Direct link: https://go.microsoft.com/fwlink/?linkid=2088631
+
+Most modern Windows 10/11 systems have this pre-installed.
+
+================================================================================
+2. MICROSOFT AGENT (REQUIRED)
+================================================================================
+
+MS Agent is the character animation system. You have two options:
+
+OPTION A: DoubleAgent (RECOMMENDED - Modern replacement)
+---------------------------------------------------------
+DoubleAgent is a modern MS Agent replacement that works on 64-bit Windows
+and handles all registration automatically.
+
+Download: https://doubleagent.sourceforge.net/
+Direct:   https://sourceforge.net/projects/doubleagent/files/latest/download
+
+After installing DoubleAgent:
+- Characters are placed in: C:\Windows\msagent\chars\
+- The COM components are registered automatically
+- Works with both 32-bit and 64-bit applications
+
+
+OPTION B: Original Microsoft Agent (Legacy)
+-------------------------------------------
+If you prefer the original MS Agent (may have issues on modern Windows):
+
+1. MS Agent Core:
+   https://www.microsoft.com/en-us/download/details.aspx?id=10143
+   (MSagent.exe - installs to C:\Windows\msagent\)
+
+2. After installation, register COM components as Administrator:
+   Open Command Prompt as Administrator and run:
+   
+   regsvr32 "C:\Windows\msagent\agentsvr.exe"
+   regsvr32 "C:\Windows\msagent\agentctl.dll"
+   regsvr32 "C:\Windows\msagent\agentdpv.dll"
+
+================================================================================
+3. MS AGENT CHARACTERS
+================================================================================
+
+You need at least one character file (.acs) to use MSAgent-AI.
+
+Default location: C:\Windows\msagent\chars\
+
+Popular characters (search online for download links):
+- Peedy (parrot)
+- Merlin (wizard)
+- Genie (genie)
+- Robby (robot)
+- Bonzi (purple gorilla - BonziBuddy character)
+
+Archive.org has many character collections:
+https://archive.org/search?query=microsoft+agent+characters
+
+================================================================================
+4. SAPI 4 TEXT-TO-SPEECH (REQUIRED FOR VOICE)
+================================================================================
+
+SAPI 4 is the legacy speech API used by MS Agent.
+
+Option A: Microsoft SAPI 4.0a SDK (includes voices)
+----------------------------------------------------
+Download: https://www.microsoft.com/en-us/download/details.aspx?id=10121
+
+Option B: Individual SAPI 4 Voices
+----------------------------------
+After installing SAPI 4, you can add more voices:
+
+- Microsoft Sam, Mike, Mary (included with SAPI 4 SDK)
+- L&H TTS Voices
+- AT&T Natural Voices
+
+Search Archive.org for "SAPI 4 voices":
+https://archive.org/search?query=sapi+4+voices
+
+================================================================================
+5. OLLAMA (OPTIONAL - FOR AI CHAT FEATURES)
+================================================================================
+
+Ollama provides local AI for dynamic conversations and random dialog.
+
+Download: https://ollama.ai/download
+
+After installing:
+1. Open terminal and run: ollama pull llama3.2
+2. Start Ollama (runs on http://localhost:11434)
+
+The application will work without Ollama, but AI features will be disabled.
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Error: "Library not registered" (TYPE_E_LIBNOTREGISTERED)
+---------------------------------------------------------
+This means MS Agent COM components aren't registered. Solutions:
+
+1. Install DoubleAgent (recommended) - it handles registration automatically
+
+2. Or manually register (as Administrator):
+   regsvr32 "C:\Windows\msagent\agentsvr.exe"
+   regsvr32 "C:\Windows\msagent\agentctl.dll"
+
+Error: "Failed to initialize MS Agent"
+--------------------------------------
+1. Ensure MS Agent or DoubleAgent is installed
+2. Try running the application as Administrator
+3. Check that files exist in C:\Windows\msagent\
+
+No characters found
+-------------------
+1. Download character files (.acs)
+2. Place them in: C:\Windows\msagent\chars\
+3. Restart the application
+
+No voices available
+-------------------
+1. Install SAPI 4.0a SDK
+2. Or install individual SAPI 4 voices
+3. Restart the application
+
+================================================================================
+VERIFIED WORKING CONFIGURATION
+================================================================================
+
+The following configuration is known to work:
+
+- Windows 10/11 (64-bit)
+- DoubleAgent (latest version from SourceForge)
+- Merlin.acs character (included with DoubleAgent)
+- SAPI 4.0a SDK with Microsoft voices
+- .NET Framework 4.8
+
+================================================================================
