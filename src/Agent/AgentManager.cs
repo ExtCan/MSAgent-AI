@@ -280,6 +280,9 @@ namespace MSAgentAI.Agent
                 throw new AgentException("Agent server not initialized.");
             }
 
+            Exception firstException = null;
+            Exception secondException = null;
+            
             try
             {
                 // Unload any existing character
@@ -288,31 +291,79 @@ namespace MSAgentAI.Agent
                     UnloadCharacter();
                 }
 
-                // Load the character - for AgentServer we get a character ID back
-                object charId = null;
-                object requestId = null;
-                
+                // Method 1: Try AgentServer.Load (IAgentEx interface)
                 try
                 {
-                    // AgentServer.Load method returns the character ID
+                    object charId = null;
+                    object requestId = null;
                     _agentServer.Load(characterPath, ref charId, ref requestId);
                     _characterId = Convert.ToInt32(charId);
                     _character = _agentServer.Character(_characterId);
+                    _isLoaded = true;
+                    System.Diagnostics.Debug.WriteLine($"Character loaded using AgentServer.Load: {characterPath}");
+                    return;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Try the Agent.Control style (Characters collection)
+                    firstException = ex;
+                    System.Diagnostics.Debug.WriteLine($"AgentServer.Load failed: {ex.Message}");
+                }
+
+                // Method 2: Try Agent.Control style (Characters collection)
+                try
+                {
                     string charName = Path.GetFileNameWithoutExtension(characterPath);
-                    _agentServer.Characters.Load(charName, characterPath);
-                    _character = _agentServer.Characters[charName];
-                    _characterId = charName.GetHashCode(); // Use hash as pseudo-ID
+                    dynamic characters = _agentServer.Characters;
+                    characters.Load(charName, characterPath);
+                    _character = characters[charName];
+                    _characterId = charName.GetHashCode();
+                    _isLoaded = true;
+                    System.Diagnostics.Debug.WriteLine($"Character loaded using Characters.Load: {characterPath}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    secondException = ex;
+                    System.Diagnostics.Debug.WriteLine($"Characters.Load failed: {ex.Message}");
                 }
                 
-                _isLoaded = true;
+                // Method 3: Try loading with just the filename (some versions expect this)
+                try
+                {
+                    string charName = Path.GetFileNameWithoutExtension(characterPath);
+                    dynamic characters = _agentServer.Characters;
+                    characters.Load(charName, (object)characterPath);
+                    _character = characters.Character(charName);
+                    _characterId = charName.GetHashCode();
+                    _isLoaded = true;
+                    System.Diagnostics.Debug.WriteLine($"Character loaded using Characters.Character: {characterPath}");
+                    return;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Characters.Character failed: {ex.Message}");
+                }
+
+                // All methods failed
+                string errorMsg = $"Failed to load character from '{characterPath}'.\n\n";
+                if (firstException != null)
+                    errorMsg += $"Method 1 (AgentServer.Load): {firstException.Message}\n";
+                if (secondException != null)
+                    errorMsg += $"Method 2 (Characters.Load): {secondException.Message}\n";
+                
+                throw new AgentException(errorMsg);
+            }
+            catch (AgentException)
+            {
+                throw;
             }
             catch (COMException ex)
             {
-                throw new AgentException($"Failed to load character from '{characterPath}'.", ex);
+                throw new AgentException($"COM error loading character from '{characterPath}': 0x{ex.ErrorCode:X8} - {ex.Message}", ex);
+            }
+            catch (Exception ex)
+            {
+                throw new AgentException($"Unexpected error loading character from '{characterPath}': {ex.Message}", ex);
             }
         }
 
