@@ -273,6 +273,12 @@ my-character/
     └── ...
 ```
 
+## Known Limitations
+
+- **Placeholder Image Generation**: The `generatePlaceholderImage` function currently returns a placeholder string rather than actual image data. To generate real images, you'll need to integrate an image processing library like `canvas` or `sharp`.
+
+- **Binary ACS/ACF Export**: Export to native MSAgent binary formats (.acs, .acf) is not yet implemented. Currently only JSON export is fully supported.
+
 ## Development
 
 ```bash
