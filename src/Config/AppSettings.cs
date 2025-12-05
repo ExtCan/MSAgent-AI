@@ -211,26 +211,29 @@ namespace MSAgentAI.Config
             if (string.IsNullOrEmpty(text))
                 return text;
 
-            // Apply pronunciation dictionary using \map\ command
-            // Format: \map="pronunciation"="word"\
+            // Apply pronunciation dictionary - directly replace words with pronunciation
+            // This ensures ALL occurrences are pronounced correctly
             foreach (var entry in PronunciationDictionary)
             {
-                if (text.IndexOf(entry.Key, StringComparison.OrdinalIgnoreCase) >= 0)
+                if (!string.IsNullOrEmpty(entry.Key) && !string.IsNullOrEmpty(entry.Value))
                 {
-                    // Use \map\ command for pronunciation mapping
-                    string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
-                    text = text.Insert(0, mapCommand);
+                    // Replace all occurrences (case-insensitive)
+                    text = System.Text.RegularExpressions.Regex.Replace(
+                        text, 
+                        System.Text.RegularExpressions.Regex.Escape(entry.Key), 
+                        entry.Value, 
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 }
             }
 
-            // Replace ## with user name pronunciation using \map\ command
+            // Replace ## with user name (using pronunciation if set)
             if (text.Contains("##"))
             {
-                // Insert map command for name at the beginning
-                string nameMapCommand = $"\\map=\"{UserNamePronunciation}\"=\"{UserName}\"\\";
-                text = text.Insert(0, nameMapCommand);
-                // Replace ## with the display name
-                text = text.Replace("##", UserName);
+                // Use pronunciation if available, otherwise display name
+                string nameToSpeak = !string.IsNullOrWhiteSpace(UserNamePronunciation) 
+                    ? UserNamePronunciation 
+                    : UserName;
+                text = text.Replace("##", nameToSpeak);
             }
 
             // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)
