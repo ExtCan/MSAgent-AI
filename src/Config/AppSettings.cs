@@ -176,6 +176,7 @@ namespace MSAgentAI.Config
         /// <summary>
         /// Processes text to replace ## with the user's name pronunciation
         /// and handle \emp\ emphasis tags for SAPI4
+        /// Uses the CyberBuddy approach for proper SAPI4 tags
         /// </summary>
         public string ProcessText(string text)
         {
@@ -185,8 +186,16 @@ namespace MSAgentAI.Config
             // Replace ## with user name pronunciation
             text = text.Replace("##", UserNamePronunciation);
 
-            // Convert /emp/ to \emp\ for SAPI4
-            text = text.Replace("/emp/", "\\emp\\");
+            // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)
+            // SAPI4 uses backslash escape sequences like \Emp\ for emphasis
+            text = text.Replace("/emp/", "\\Emp\\");
+            text = text.Replace("\\emp\\", "\\Emp\\"); // Normalize existing ones
+            
+            // Also support other SAPI4 tags
+            // \Pau=N\ - pause for N milliseconds
+            // \Vol=N\ - set volume (0-65535)
+            // \Spd=N\ - set speed
+            // \Pit=N\ - set pitch
 
             return text;
         }

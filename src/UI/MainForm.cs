@@ -233,13 +233,52 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var welcomeLine = _settings.GetProcessedRandomLine(_settings.WelcomeLines);
+                var welcomeLine = GetRandomLine(_settings.WelcomeLines);
                 if (!string.IsNullOrEmpty(welcomeLine))
                 {
-                    _agentManager.PlayAnimation("Greet");
-                    _agentManager.Speak(welcomeLine);
+                    SpeakWithAnimations(welcomeLine, "Greet");
                 }
             }
+        }
+        
+        /// <summary>
+        /// Speaks text with animation support. Extracts &&Animation triggers from text,
+        /// plays them, then speaks the processed text.
+        /// </summary>
+        private void SpeakWithAnimations(string text, string defaultAnimation = null)
+        {
+            if (_agentManager?.IsLoaded != true || string.IsNullOrEmpty(text))
+                return;
+                
+            // Extract animation triggers (&&AnimationName)
+            var (cleanText, animations) = AppSettings.ExtractAnimationTriggers(text);
+            
+            // Process text for ## name replacement and /emp/ emphasis
+            cleanText = _settings.ProcessText(cleanText);
+            
+            // Play animations
+            if (animations.Count > 0)
+            {
+                foreach (var anim in animations)
+                {
+                    _agentManager.PlayAnimation(anim);
+                }
+            }
+            else if (!string.IsNullOrEmpty(defaultAnimation))
+            {
+                _agentManager.PlayAnimation(defaultAnimation);
+            }
+            
+            // Speak the processed text
+            _agentManager.Speak(cleanText);
+        }
+        
+        /// <summary>
+        /// Gets a random line from the specified list (static helper)
+        /// </summary>
+        private static string GetRandomLine(List<string> lines)
+        {
+            return AppSettings.GetRandomLine(lines);
         }
 
         #region Event Handlers
@@ -289,11 +328,10 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var joke = _settings.GetProcessedRandomLine(_settings.Jokes);
+                var joke = GetRandomLine(_settings.Jokes);
                 if (!string.IsNullOrEmpty(joke))
                 {
-                    _agentManager.PlayAnimation("Pleased");
-                    _agentManager.Speak(joke);
+                    SpeakWithAnimations(joke, "Pleased");
                 }
             }
         }
@@ -302,9 +340,11 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var thought = _settings.GetProcessedRandomLine(_settings.Thoughts);
+                var thought = GetRandomLine(_settings.Thoughts);
                 if (!string.IsNullOrEmpty(thought))
                 {
+                    // Process text for name and emphasis
+                    thought = _settings.ProcessText(thought);
                     _agentManager.Think(thought);
                 }
             }
@@ -318,11 +358,11 @@ namespace MSAgentAI.UI
                 return;
             }
 
-            using (var dialog = new InputDialog("Speak", "Enter text for the agent to say:"))
+            using (var dialog = new InputDialog("Speak", "Enter text for the agent to say:\n(Use &&Animation for animations, /emp/ for emphasis, ## for name)"))
             {
                 if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(dialog.InputText))
                 {
-                    _agentManager.Speak(dialog.InputText);
+                    SpeakWithAnimations(dialog.InputText);
                 }
             }
         }
@@ -345,7 +385,7 @@ namespace MSAgentAI.UI
                         var response = await _ollamaClient.ChatAsync(dialog.InputText, _cancellationTokenSource.Token);
                         if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
                         {
-                            _agentManager.Speak(response);
+                            SpeakWithAnimations(response);
                         }
                     }
                     catch (Exception ex)
@@ -394,11 +434,10 @@ namespace MSAgentAI.UI
             // Show exit message
             if (_agentManager?.IsLoaded == true)
             {
-                var exitLine = _settings.GetProcessedRandomLine(_settings.ExitLines);
+                var exitLine = GetRandomLine(_settings.ExitLines);
                 if (!string.IsNullOrEmpty(exitLine))
                 {
-                    _agentManager.PlayAnimation("Wave");
-                    _agentManager.Speak(exitLine);
+                    SpeakWithAnimations(exitLine, "Wave");
                     // Use a timer to wait for speech before exiting instead of blocking the UI
                     var exitTimer = new System.Windows.Forms.Timer { Interval = 2000 };
                     exitTimer.Tick += (s, args) =>
@@ -433,16 +472,10 @@ namespace MSAgentAI.UI
                 // 1 in N chance (configurable)
                 if (_random.Next(_settings.PrewrittenIdleChance) == 0)
                 {
-                    var idleLine = _settings.GetProcessedRandomLine(_settings.IdleLines);
+                    var idleLine = GetRandomLine(_settings.IdleLines);
                     if (!string.IsNullOrEmpty(idleLine))
                     {
-                        // Extract and play any animation triggers
-                        var (text, animations) = AppSettings.ExtractAnimationTriggers(idleLine);
-                        foreach (var anim in animations)
-                        {
-                            _agentManager.PlayAnimation(anim);
-                        }
-                        _agentManager.Speak(text);
+                        SpeakWithAnimations(idleLine, "Idle1_1");
                     }
                 }
             }
@@ -458,21 +491,13 @@ namespace MSAgentAI.UI
             {
                 try
                 {
-                    var prompt = AppSettings.GetRandomLine(_settings.RandomDialogPrompts);
+                    var prompt = GetRandomLine(_settings.RandomDialogPrompts);
                     if (!string.IsNullOrEmpty(prompt))
                     {
                         var response = await _ollamaClient.GenerateRandomDialogAsync(prompt, _cancellationTokenSource.Token);
                         if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
                         {
-                            // Extract animations from AI response
-                            var (text, animations) = OllamaClient.ExtractAnimations(response);
-                            foreach (var anim in animations)
-                            {
-                                _agentManager.PlayAnimation(anim);
-                            }
-                            // Process text for ## replacement and /emp/ conversion
-                            text = _settings.ProcessText(text);
-                            _agentManager.Speak(text);
+                            SpeakWithAnimations(response);
                         }
                     }
                 }
@@ -487,20 +512,10 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var clickedLine = _settings.GetProcessedRandomLine(_settings.ClickedLines);
+                var clickedLine = GetRandomLine(_settings.ClickedLines);
                 if (!string.IsNullOrEmpty(clickedLine))
                 {
-                    // Extract and play any animation triggers
-                    var (text, animations) = AppSettings.ExtractAnimationTriggers(clickedLine);
-                    if (animations.Count == 0)
-                    {
-                        _agentManager.PlayAnimation("Surprised");
-                    }
-                    foreach (var anim in animations)
-                    {
-                        _agentManager.PlayAnimation(anim);
-                    }
-                    _agentManager.Speak(text);
+                    SpeakWithAnimations(clickedLine, "Surprised");
                 }
             }
         }
@@ -509,16 +524,10 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var movedLine = _settings.GetProcessedRandomLine(_settings.MovedLines);
+                var movedLine = GetRandomLine(_settings.MovedLines);
                 if (!string.IsNullOrEmpty(movedLine))
                 {
-                    // Extract and play any animation triggers
-                    var (text, animations) = AppSettings.ExtractAnimationTriggers(movedLine);
-                    foreach (var anim in animations)
-                    {
-                        _agentManager.PlayAnimation(anim);
-                    }
-                    _agentManager.Speak(text);
+                    SpeakWithAnimations(movedLine);
                 }
             }
         }
