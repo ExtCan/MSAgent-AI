@@ -273,6 +273,22 @@ my-character/
     └── ...
 ```
 
+## Standalone Executables
+
+Pre-built executables are available for download from the [Actions](../../actions) tab:
+
+- **msagent-windows-x64** - Windows executable (.exe)
+- **msagent-linux-x64** - Linux executable
+- **msagent-macos-x64** - macOS executable
+
+Or build them yourself:
+
+```bash
+npm run build:exe
+```
+
+This creates standalone executables in the `bin/` directory that can run without Node.js installed.
+
 ## Known Limitations
 
 - **Placeholder Image Generation**: The `generatePlaceholderImage` function currently returns a placeholder string rather than actual image data. To generate real images, you'll need to integrate an image processing library like `canvas` or `sharp`.
@@ -287,6 +303,9 @@ npm install
 
 # Build
 npm run build
+
+# Build standalone executables
+npm run build:exe
 
 # Run CLI in development
 npm run cli

@@ -9,11 +9,19 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:exe": "npm run build && pkg dist/cli.js --targets node18-win-x64,node18-linux-x64,node18-macos-x64 --output bin/msagent",
     "start": "node dist/index.js",
     "dev": "ts-node --esm src/index.ts",
     "cli": "ts-node --esm src/cli.ts",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "lint": "tsc --noEmit"
+  },
+  "pkg": {
+    "scripts": "dist/**/*.js",
+    "assets": [
+      "dist/**/*"
+    ],
+    "outputPath": "bin"
   },
   "keywords": [
     "msagent",
@@ -28,6 +36,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.10.1",
     "jest": "^30.2.0",
+    "pkg": "^5.8.1",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
