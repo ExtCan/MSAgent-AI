@@ -856,19 +856,27 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
+                string displayName = _userNameTextBox.Text;
                 string pronunciation = _userNamePronunciationTextBox.Text;
-                if (string.IsNullOrEmpty(pronunciation))
-                {
-                    pronunciation = _userNameTextBox.Text;
-                }
-                if (!string.IsNullOrEmpty(pronunciation))
-                {
-                    _agentManager.Speak($"Hello, {pronunciation}!");
-                }
-                else
+                
+                if (string.IsNullOrEmpty(displayName))
                 {
                     MessageBox.Show("Please enter a name first.", "Name Required", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
                 }
+                
+                // If pronunciation is empty, use display name
+                if (string.IsNullOrEmpty(pronunciation))
+                {
+                    pronunciation = displayName;
+                }
+                
+                // Show what the user will see and what agent will say
+                MessageBox.Show($"Display Name: {displayName}\nPronounced as: {pronunciation}", 
+                    "Name Test", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                
+                // Agent speaks using the pronunciation
+                _agentManager.Speak($"Hello, {pronunciation}! Nice to meet you!");
             }
             else
             {

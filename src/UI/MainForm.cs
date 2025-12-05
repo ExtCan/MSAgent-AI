@@ -318,7 +318,7 @@ namespace MSAgentAI.UI
                 return;
             }
 
-            using (var chatForm = new ChatForm(_ollamaClient, _agentManager))
+            using (var chatForm = new ChatForm(_ollamaClient, _agentManager, _settings))
             {
                 chatForm.ShowDialog();
             }

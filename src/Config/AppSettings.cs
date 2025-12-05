@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -24,6 +25,9 @@ namespace MSAgentAI.Config
         public int VoicePitch { get; set; } = 100;
         public int VoiceVolume { get; set; } = 65535;
 
+        // UI Theme
+        public string UITheme { get; set; } = "Default";
+
         // Ollama AI settings
         public string OllamaUrl { get; set; } = "http://localhost:11434";
         public string OllamaModel { get; set; } = "llama2";
@@ -43,6 +47,9 @@ namespace MSAgentAI.Config
             "Make a strange observation about reality",
             "Share a conspiracy theory you just made up"
         };
+
+        // Custom presets storage
+        public Dictionary<string, string> CustomPersonalityPresets { get; set; } = new Dictionary<string, string>();
 
         // Custom lines
         public List<string> WelcomeLines { get; set; } = new List<string>
@@ -242,7 +249,119 @@ namespace MSAgentAI.Config
             { "Philosophical", "You are a deep-thinking, philosophical desktop companion. You ponder life's mysteries and share profound thoughts. Keep responses short but thought-provoking." },
             { "Enthusiastic", "You are an overly excited, super energetic desktop companion! Everything is AMAZING to you! You use lots of exclamation points and can barely contain your enthusiasm!!!" },
             { "Mysterious", "You are a cryptic, mysterious desktop companion. You speak in riddles and hints. You know secrets but never tell them directly. Keep responses short and enigmatic." },
-            { "Retro", "You are a nostalgic desktop companion from the late 90s/early 2000s. You reference old internet culture, AOL, dial-up, and simpler times. Keep responses short and throwback-y." }
+            { "Retro", "You are a nostalgic desktop companion from the late 90s/early 2000s. You reference old internet culture, AOL, dial-up, and simpler times. Keep responses short and throwback-y." },
+            { "Pirate", "Arrr! You be a pirate companion! Ye speak in pirate dialect, love treasure and the sea. Keep responses short and full of 'arrr' and 'matey'!" },
+            { "Robot", "BEEP BOOP. You are a robot companion. You speak in a mechanical manner, occasionally malfunction, and love efficiency. PROCESSING... Keep responses short and robotic." },
+            { "Poet", "You are a poetic companion who speaks in verse. You rhyme when you can, use flowery language, and appreciate beauty. Keep responses short but lyrical." },
+            { "Conspiracy", "You are a conspiracy theorist companion. Everything is connected. You see hidden meanings everywhere and trust no one. Keep responses short and paranoid." },
+            { "Grandparent", "You are a wise, elderly companion. You share life lessons, remember 'the old days', and offer gentle advice. Keep responses short and full of wisdom." }
         };
+
+        /// <summary>
+        /// UI Theme colors
+        /// </summary>
+        public static readonly Dictionary<string, string> AvailableThemes = new Dictionary<string, string>
+        {
+            { "Default", "System default theme" },
+            { "Dark", "Dark mode theme" },
+            { "Deep Blue", "Deep blue theme" },
+            { "Deep Purple", "Deep purple theme" },
+            { "Wine Red", "Deep wine-red theme" },
+            { "Deep Green", "Deep green theme" },
+            { "Pure Black", "Pure black OLED theme" }
+        };
+
+        /// <summary>
+        /// Gets the theme colors for a given theme name
+        /// </summary>
+        public static ThemeColors GetThemeColors(string themeName)
+        {
+            switch (themeName)
+            {
+                case "Dark":
+                    return new ThemeColors
+                    {
+                        Background = Color.FromArgb(45, 45, 48),
+                        Foreground = Color.White,
+                        ButtonBackground = Color.FromArgb(60, 60, 65),
+                        ButtonForeground = Color.White,
+                        InputBackground = Color.FromArgb(30, 30, 30),
+                        InputForeground = Color.White
+                    };
+                case "Deep Blue":
+                    return new ThemeColors
+                    {
+                        Background = Color.FromArgb(20, 30, 60),
+                        Foreground = Color.White,
+                        ButtonBackground = Color.FromArgb(30, 50, 100),
+                        ButtonForeground = Color.White,
+                        InputBackground = Color.FromArgb(15, 25, 50),
+                        InputForeground = Color.LightCyan
+                    };
+                case "Deep Purple":
+                    return new ThemeColors
+                    {
+                        Background = Color.FromArgb(40, 20, 60),
+                        Foreground = Color.White,
+                        ButtonBackground = Color.FromArgb(70, 40, 100),
+                        ButtonForeground = Color.White,
+                        InputBackground = Color.FromArgb(30, 15, 45),
+                        InputForeground = Color.Lavender
+                    };
+                case "Wine Red":
+                    return new ThemeColors
+                    {
+                        Background = Color.FromArgb(60, 20, 30),
+                        Foreground = Color.White,
+                        ButtonBackground = Color.FromArgb(100, 40, 50),
+                        ButtonForeground = Color.White,
+                        InputBackground = Color.FromArgb(45, 15, 25),
+                        InputForeground = Color.MistyRose
+                    };
+                case "Deep Green":
+                    return new ThemeColors
+                    {
+                        Background = Color.FromArgb(20, 50, 30),
+                        Foreground = Color.White,
+                        ButtonBackground = Color.FromArgb(40, 80, 50),
+                        ButtonForeground = Color.White,
+                        InputBackground = Color.FromArgb(15, 40, 25),
+                        InputForeground = Color.LightGreen
+                    };
+                case "Pure Black":
+                    return new ThemeColors
+                    {
+                        Background = Color.Black,
+                        Foreground = Color.White,
+                        ButtonBackground = Color.FromArgb(30, 30, 30),
+                        ButtonForeground = Color.White,
+                        InputBackground = Color.FromArgb(10, 10, 10),
+                        InputForeground = Color.White
+                    };
+                default: // Default system theme
+                    return new ThemeColors
+                    {
+                        Background = SystemColors.Control,
+                        Foreground = SystemColors.ControlText,
+                        ButtonBackground = SystemColors.Control,
+                        ButtonForeground = SystemColors.ControlText,
+                        InputBackground = SystemColors.Window,
+                        InputForeground = SystemColors.WindowText
+                    };
+            }
+        }
+    }
+
+    /// <summary>
+    /// Theme color definition
+    /// </summary>
+    public class ThemeColors
+    {
+        public Color Background { get; set; }
+        public Color Foreground { get; set; }
+        public Color ButtonBackground { get; set; }
+        public Color ButtonForeground { get; set; }
+        public Color InputBackground { get; set; }
+        public Color InputForeground { get; set; }
     }
 }
