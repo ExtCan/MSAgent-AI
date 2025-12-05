@@ -490,6 +490,11 @@ namespace MSAgentAI.UI
                     _speechRecognition.OnListeningStarted += (s, e) => Logger.Log("Call Mode: Listening started");
                     _speechRecognition.OnListeningStopped += (s, e) => Logger.Log("Call Mode: Listening stopped");
                 }
+                
+                // Apply speech recognition settings from config
+                _speechRecognition.MinConfidenceThreshold = _settings.SpeechConfidenceThreshold / 100.0;
+                _speechRecognition.SilenceThresholdMs = _settings.SilenceDetectionMs;
+                Logger.Log($"Call Mode settings: Confidence={_settings.SpeechConfidenceThreshold}%, Silence={_settings.SilenceDetectionMs}ms");
 
                 _inCallMode = true;
                 _callModeItem.Text = "📞 Call Mode (ACTIVE - Click to Stop)";

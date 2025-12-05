@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Speech.Recognition;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,8 +19,8 @@ namespace MSAgentAI.Voice
         private DateTime _lastSpeechTime;
         private string _currentUtterance;
         private Timer _silenceTimer;
-        private const int SilenceThresholdMs = 1500; // 1.5 seconds of silence (reduced for better responsiveness)
-        private const double MinConfidenceThreshold = 0.2; // Lower threshold for better detection
+        private int _silenceThresholdMs = 1500; // Default 1.5 seconds
+        private double _minConfidenceThreshold = 0.2; // Default 0.2
         private bool _speechInProgress;
         private int _audioLevel;
 
@@ -30,10 +31,48 @@ namespace MSAgentAI.Voice
 
         public bool IsListening => _isListening;
         public int AudioLevel => _audioLevel;
+        
+        // Settings properties
+        public int SilenceThresholdMs 
+        { 
+            get => _silenceThresholdMs; 
+            set => _silenceThresholdMs = Math.Max(500, Math.Min(5000, value)); 
+        }
+        
+        public double MinConfidenceThreshold 
+        { 
+            get => _minConfidenceThreshold; 
+            set => _minConfidenceThreshold = Math.Max(0.0, Math.Min(1.0, value)); 
+        }
 
         public SpeechRecognitionManager()
         {
             InitializeRecognizer();
+        }
+        
+        /// <summary>
+        /// Gets available audio input devices (microphones)
+        /// </summary>
+        public static List<string> GetAvailableMicrophones()
+        {
+            var mics = new List<string>();
+            mics.Add("(Default Device)");
+            
+            try
+            {
+                // Get all recognizer info to find audio inputs
+                foreach (var recognizerInfo in SpeechRecognitionEngine.InstalledRecognizers())
+                {
+                    // System.Speech doesn't expose individual microphones easily
+                    // But we can add recognizer cultures as options
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to enumerate microphones", ex);
+            }
+            
+            return mics;
         }
 
         private void InitializeRecognizer()
@@ -165,7 +204,7 @@ namespace MSAgentAI.Voice
 
         private void OnSpeechRecognizedInternal(object sender, SpeechRecognizedEventArgs e)
         {
-            if (e.Result != null && e.Result.Confidence >= MinConfidenceThreshold)
+            if (e.Result != null && e.Result.Confidence >= _minConfidenceThreshold)
             {
                 _lastSpeechTime = DateTime.Now;
                 _speechInProgress = true;
@@ -174,7 +213,7 @@ namespace MSAgentAI.Voice
             }
             else if (e.Result != null)
             {
-                Logger.Log($"Low confidence speech ignored: \"{e.Result.Text}\" (confidence: {e.Result.Confidence:F2})");
+                Logger.Log($"Low confidence speech ignored: \"{e.Result.Text}\" (confidence: {e.Result.Confidence:F2}, threshold: {_minConfidenceThreshold:F2})");
             }
         }
 
@@ -209,14 +248,14 @@ namespace MSAgentAI.Voice
             var silenceTime = (DateTime.Now - _lastSpeechTime).TotalMilliseconds;
             
             // Only trigger if we had speech in progress and now have silence
-            if (_speechInProgress && silenceTime >= SilenceThresholdMs && !string.IsNullOrWhiteSpace(_currentUtterance))
+            if (_speechInProgress && silenceTime >= _silenceThresholdMs && !string.IsNullOrWhiteSpace(_currentUtterance))
             {
                 // Silence detected after speech - process the utterance
                 var finalText = _currentUtterance.Trim();
                 _currentUtterance = "";
                 _speechInProgress = false;
                 
-                Logger.Log($"Silence detected (1.5s) after speech: \"{finalText}\"");
+                Logger.Log($"Silence detected ({_silenceThresholdMs}ms) after speech: \"{finalText}\"");
                 
                 // Fire the event
                 OnSpeechRecognized?.Invoke(this, finalText);

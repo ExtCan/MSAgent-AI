@@ -24,6 +24,11 @@ namespace MSAgentAI.Config
         public int VoiceSpeed { get; set; } = 150;
         public int VoicePitch { get; set; } = 100;
         public int VoiceVolume { get; set; } = 65535;
+        
+        // Speech recognition (Call Mode) settings
+        public string SelectedMicrophone { get; set; } = ""; // Empty = default
+        public int SpeechConfidenceThreshold { get; set; } = 20; // 0-100 (scaled to 0.0-1.0)
+        public int SilenceDetectionMs { get; set; } = 1500; // Milliseconds of silence before AI responds
 
         // UI Theme
         public string UITheme { get; set; } = "Default";

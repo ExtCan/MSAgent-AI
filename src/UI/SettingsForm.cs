@@ -56,6 +56,13 @@ namespace MSAgentAI.UI
         private Label _pitchValueLabel;
         private Label _volumeValueLabel;
         private Button _testVoiceButton;
+        
+        // Call Mode / Speech Recognition controls
+        private ComboBox _microphoneComboBox;
+        private TrackBar _confidenceTrackBar;
+        private Label _confidenceValueLabel;
+        private TrackBar _silenceTrackBar;
+        private Label _silenceValueLabel;
 
         // Ollama controls
         private TextBox _ollamaUrlTextBox;
@@ -414,14 +421,14 @@ namespace MSAgentAI.UI
             var speedLabel = new Label
             {
                 Text = "Speed:",
-                Location = new Point(15, 65),
+                Location = new Point(15, 55),
                 Size = new Size(80, 20)
             };
 
             _speedTrackBar = new TrackBar
             {
-                Location = new Point(100, 55),
-                Size = new Size(400, 45),
+                Location = new Point(100, 45),
+                Size = new Size(400, 35),
                 Minimum = 50,
                 Maximum = 350,
                 Value = 150,
@@ -432,7 +439,7 @@ namespace MSAgentAI.UI
             _speedValueLabel = new Label
             {
                 Text = "150",
-                Location = new Point(510, 65),
+                Location = new Point(510, 55),
                 Size = new Size(50, 20)
             };
 
@@ -440,14 +447,14 @@ namespace MSAgentAI.UI
             var pitchLabel = new Label
             {
                 Text = "Pitch:",
-                Location = new Point(15, 115),
+                Location = new Point(15, 90),
                 Size = new Size(80, 20)
             };
 
             _pitchTrackBar = new TrackBar
             {
-                Location = new Point(100, 105),
-                Size = new Size(400, 45),
+                Location = new Point(100, 80),
+                Size = new Size(400, 35),
                 Minimum = 50,
                 Maximum = 400,
                 Value = 100,
@@ -458,7 +465,7 @@ namespace MSAgentAI.UI
             _pitchValueLabel = new Label
             {
                 Text = "100",
-                Location = new Point(510, 115),
+                Location = new Point(510, 90),
                 Size = new Size(50, 20)
             };
 
@@ -466,14 +473,14 @@ namespace MSAgentAI.UI
             var volumeLabel = new Label
             {
                 Text = "Volume:",
-                Location = new Point(15, 165),
+                Location = new Point(15, 125),
                 Size = new Size(80, 20)
             };
 
             _volumeTrackBar = new TrackBar
             {
-                Location = new Point(100, 155),
-                Size = new Size(400, 45),
+                Location = new Point(100, 115),
+                Size = new Size(400, 35),
                 Minimum = 0,
                 Maximum = 100,
                 Value = 100,
@@ -484,17 +491,113 @@ namespace MSAgentAI.UI
             _volumeValueLabel = new Label
             {
                 Text = "100%",
-                Location = new Point(510, 165),
+                Location = new Point(510, 125),
                 Size = new Size(50, 20)
             };
 
             _testVoiceButton = new Button
             {
                 Text = "Test Voice",
-                Location = new Point(15, 220),
+                Location = new Point(15, 155),
                 Size = new Size(100, 30)
             };
             _testVoiceButton.Click += OnTestVoiceClick;
+            
+            // Call Mode / Speech Recognition Section
+            var callModeLabel = new Label
+            {
+                Text = "═══ Call Mode (Voice Chat) Settings ═══",
+                Location = new Point(15, 200),
+                Size = new Size(400, 20),
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+            
+            // Microphone selection
+            var micLabel = new Label
+            {
+                Text = "Microphone:",
+                Location = new Point(15, 230),
+                Size = new Size(80, 20)
+            };
+
+            _microphoneComboBox = new ComboBox
+            {
+                Location = new Point(100, 227),
+                Size = new Size(300, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _microphoneComboBox.Items.Add("(Default Device)");
+            _microphoneComboBox.SelectedIndex = 0;
+            
+            // Confidence threshold
+            var confidenceLabel = new Label
+            {
+                Text = "Confidence:",
+                Location = new Point(15, 265),
+                Size = new Size(80, 20)
+            };
+
+            _confidenceTrackBar = new TrackBar
+            {
+                Location = new Point(100, 255),
+                Size = new Size(400, 35),
+                Minimum = 5,
+                Maximum = 100,
+                Value = 20,
+                TickFrequency = 10
+            };
+            _confidenceTrackBar.ValueChanged += (s, e) => _confidenceValueLabel.Text = _confidenceTrackBar.Value.ToString() + "%";
+
+            _confidenceValueLabel = new Label
+            {
+                Text = "20%",
+                Location = new Point(510, 265),
+                Size = new Size(50, 20)
+            };
+            
+            var confidenceHint = new Label
+            {
+                Text = "Lower = more sensitive but may pick up noise. Higher = more accurate but may miss speech.",
+                Location = new Point(100, 290),
+                Size = new Size(500, 15),
+                ForeColor = Color.Gray,
+                Font = new Font(this.Font.FontFamily, 7.5f)
+            };
+            
+            // Silence detection
+            var silenceLabel = new Label
+            {
+                Text = "Silence (ms):",
+                Location = new Point(15, 315),
+                Size = new Size(80, 20)
+            };
+
+            _silenceTrackBar = new TrackBar
+            {
+                Location = new Point(100, 305),
+                Size = new Size(400, 35),
+                Minimum = 500,
+                Maximum = 5000,
+                Value = 1500,
+                TickFrequency = 500
+            };
+            _silenceTrackBar.ValueChanged += (s, e) => _silenceValueLabel.Text = _silenceTrackBar.Value.ToString() + "ms";
+
+            _silenceValueLabel = new Label
+            {
+                Text = "1500ms",
+                Location = new Point(510, 315),
+                Size = new Size(60, 20)
+            };
+            
+            var silenceHint = new Label
+            {
+                Text = "How long to wait after you stop speaking before the AI responds.",
+                Location = new Point(100, 340),
+                Size = new Size(500, 15),
+                ForeColor = Color.Gray,
+                Font = new Font(this.Font.FontFamily, 7.5f)
+            };
 
             _voiceTab.Controls.AddRange(new Control[]
             {
@@ -502,7 +605,11 @@ namespace MSAgentAI.UI
                 speedLabel, _speedTrackBar, _speedValueLabel,
                 pitchLabel, _pitchTrackBar, _pitchValueLabel,
                 volumeLabel, _volumeTrackBar, _volumeValueLabel,
-                _testVoiceButton
+                _testVoiceButton,
+                callModeLabel,
+                micLabel, _microphoneComboBox,
+                confidenceLabel, _confidenceTrackBar, _confidenceValueLabel, confidenceHint,
+                silenceLabel, _silenceTrackBar, _silenceValueLabel, silenceHint
             });
         }
 
@@ -773,6 +880,12 @@ namespace MSAgentAI.UI
             _pitchTrackBar.Value = Math.Max(_pitchTrackBar.Minimum, Math.Min(_pitchTrackBar.Maximum, _settings.VoicePitch));
             _volumeTrackBar.Value = (int)(_settings.VoiceVolume / VolumeScaleFactor); // Convert from 0-65535 to 0-100
             
+            // Speech recognition settings
+            _confidenceTrackBar.Value = Math.Max(_confidenceTrackBar.Minimum, Math.Min(_confidenceTrackBar.Maximum, _settings.SpeechConfidenceThreshold));
+            _confidenceValueLabel.Text = _confidenceTrackBar.Value.ToString() + "%";
+            _silenceTrackBar.Value = Math.Max(_silenceTrackBar.Minimum, Math.Min(_silenceTrackBar.Maximum, _settings.SilenceDetectionMs));
+            _silenceValueLabel.Text = _silenceTrackBar.Value.ToString() + "ms";
+            
             // Agent size
             _agentSizeTrackBar.Value = Math.Max(_agentSizeTrackBar.Minimum, Math.Min(_agentSizeTrackBar.Maximum, _settings.AgentSize));
             _agentSizeValueLabel.Text = _agentSizeTrackBar.Value.ToString() + "%";
@@ -826,6 +939,10 @@ namespace MSAgentAI.UI
             _settings.VoiceSpeed = _speedTrackBar.Value;
             _settings.VoicePitch = _pitchTrackBar.Value;
             _settings.VoiceVolume = (int)(_volumeTrackBar.Value * VolumeScaleFactor);
+            
+            // Speech recognition settings
+            _settings.SpeechConfidenceThreshold = _confidenceTrackBar.Value;
+            _settings.SilenceDetectionMs = _silenceTrackBar.Value;
             
             // Agent size
             _settings.AgentSize = _agentSizeTrackBar.Value;
