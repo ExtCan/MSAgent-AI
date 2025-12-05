@@ -36,6 +36,10 @@ After installing DoubleAgent:
 - The COM components are registered automatically
 - Works with both 32-bit and 64-bit applications
 
+AgentPatch fixes the Microsoft Agent server application, removing the weird "bounding box" it typically has and allowing all Microsoft Agent-based applications to work correctly on systems running more modern versions of Windows.
+
+Download: https://alexparr.net/msagent/agentpatch
+Direct: https://alexparr.net/msagent/AgentPatch.zip
 
 OPTION B: Original Microsoft Agent (Legacy)
 -------------------------------------------
