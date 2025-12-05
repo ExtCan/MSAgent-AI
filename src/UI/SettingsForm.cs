@@ -56,7 +56,6 @@ namespace MSAgentAI.UI
         private Label _pitchValueLabel;
         private Label _volumeValueLabel;
         private Button _testVoiceButton;
-        private TextBox _pronunciationDictTextBox;
 
         // Ollama controls
         private TextBox _ollamaUrlTextBox;
@@ -496,41 +495,6 @@ namespace MSAgentAI.UI
                 Size = new Size(100, 30)
             };
             _testVoiceButton.Click += OnTestVoiceClick;
-            
-            // Pronunciation Dictionary section
-            var dictLabel = new Label
-            {
-                Text = "Pronunciation Dictionary:",
-                Location = new Point(15, 265),
-                Size = new Size(200, 20)
-            };
-            
-            var dictHintLabel = new Label
-            {
-                Text = "Format: word=pronunciation (one per line). Uses \\map\\ SAPI4 command.",
-                Location = new Point(15, 285),
-                Size = new Size(580, 20),
-                ForeColor = Color.Gray,
-                Font = new Font(this.Font.FontFamily, 7.5f)
-            };
-            
-            _pronunciationDictTextBox = new TextBox
-            {
-                Location = new Point(15, 305),
-                Size = new Size(400, 100),
-                Multiline = true,
-                ScrollBars = ScrollBars.Vertical,
-                AcceptsReturn = true
-            };
-            
-            var whisperHintLabel = new Label
-            {
-                Text = "TIP: Use [whisper]text[/whisper] for whispered speech.\nAI can use this feature in chat responses.",
-                Location = new Point(430, 305),
-                Size = new Size(160, 60),
-                ForeColor = Color.Gray,
-                Font = new Font(this.Font.FontFamily, 7.5f)
-            };
 
             _voiceTab.Controls.AddRange(new Control[]
             {
@@ -538,8 +502,7 @@ namespace MSAgentAI.UI
                 speedLabel, _speedTrackBar, _speedValueLabel,
                 pitchLabel, _pitchTrackBar, _pitchValueLabel,
                 volumeLabel, _volumeTrackBar, _volumeValueLabel,
-                _testVoiceButton,
-                dictLabel, dictHintLabel, _pronunciationDictTextBox, whisperHintLabel
+                _testVoiceButton
             });
         }
 
@@ -810,14 +773,6 @@ namespace MSAgentAI.UI
             _pitchTrackBar.Value = Math.Max(_pitchTrackBar.Minimum, Math.Min(_pitchTrackBar.Maximum, _settings.VoicePitch));
             _volumeTrackBar.Value = (int)(_settings.VoiceVolume / VolumeScaleFactor); // Convert from 0-65535 to 0-100
             
-            // Load pronunciation dictionary
-            var dictLines = new List<string>();
-            foreach (var entry in _settings.PronunciationDictionary)
-            {
-                dictLines.Add($"{entry.Key}={entry.Value}");
-            }
-            _pronunciationDictTextBox.Text = string.Join(Environment.NewLine, dictLines);
-            
             // Agent size
             _agentSizeTrackBar.Value = Math.Max(_agentSizeTrackBar.Minimum, Math.Min(_agentSizeTrackBar.Maximum, _settings.AgentSize));
             _agentSizeValueLabel.Text = _agentSizeTrackBar.Value.ToString() + "%";
@@ -871,18 +826,6 @@ namespace MSAgentAI.UI
             _settings.VoiceSpeed = _speedTrackBar.Value;
             _settings.VoicePitch = _pitchTrackBar.Value;
             _settings.VoiceVolume = (int)(_volumeTrackBar.Value * VolumeScaleFactor);
-            
-            // Save pronunciation dictionary
-            _settings.PronunciationDictionary.Clear();
-            var dictLines = _pronunciationDictTextBox.Text.Split(new[] { Environment.NewLine, "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in dictLines)
-            {
-                var parts = line.Split(new[] { '=' }, 2);
-                if (parts.Length == 2 && !string.IsNullOrWhiteSpace(parts[0]) && !string.IsNullOrWhiteSpace(parts[1]))
-                {
-                    _settings.PronunciationDictionary[parts[0].Trim()] = parts[1].Trim();
-                }
-            }
             
             // Agent size
             _settings.AgentSize = _agentSizeTrackBar.Value;

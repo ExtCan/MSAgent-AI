@@ -19,21 +19,6 @@ namespace MSAgentAI.Config
         public string UserName { get; set; } = "Friend";
         public string UserNamePronunciation { get; set; } = "Friend";
         
-        // Pronunciation dictionary (word -> pronunciation)
-        public Dictionary<string, string> PronunciationDictionary { get; set; } = new Dictionary<string, string>
-        {
-            // Default entries - common mispronunciations
-            { "AI", "A I" },
-            { "API", "A P I" },
-            { "GUI", "G U I" },
-            { "URL", "U R L" },
-            { "HTTP", "H T T P" },
-            { "SAPI", "S A P I" },
-            { "TTS", "T T S" },
-            { "Ollama", "oh-lah-mah" },
-            { "BonziBUDDY", "bonzi buddy" }
-        };
-
         // Voice settings
         public string SelectedVoiceId { get; set; } = "";
         public int VoiceSpeed { get; set; } = 150;
@@ -211,29 +196,14 @@ namespace MSAgentAI.Config
             if (string.IsNullOrEmpty(text))
                 return text;
 
-            // Apply pronunciation dictionary using \map\ command for EACH occurrence
-            // Format: \map="pronunciation"="word"\ inserted before each word instance
-            foreach (var entry in PronunciationDictionary)
-            {
-                if (!string.IsNullOrEmpty(entry.Key) && !string.IsNullOrEmpty(entry.Value))
-                {
-                    // Insert \map\ command before each occurrence of the word
-                    string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
-                    text = System.Text.RegularExpressions.Regex.Replace(
-                        text,
-                        $"({System.Text.RegularExpressions.Regex.Escape(entry.Key)})",
-                        mapCommand + "$1",
-                        System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-                }
-            }
-
-            // Replace ## with user name, inserting \map\ command before each occurrence
+            // Replace ## with user name (using pronunciation if available)
             if (text.Contains("##") && !string.IsNullOrWhiteSpace(UserName))
             {
-                string nameMapCommand = !string.IsNullOrWhiteSpace(UserNamePronunciation)
-                    ? $"\\map=\"{UserNamePronunciation}\"=\"{UserName}\"\\"
-                    : "";
-                text = text.Replace("##", nameMapCommand + UserName);
+                // Use pronunciation directly if available, otherwise use display name
+                string nameToSpeak = !string.IsNullOrWhiteSpace(UserNamePronunciation)
+                    ? UserNamePronunciation
+                    : UserName;
+                text = text.Replace("##", nameToSpeak);
             }
 
             // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)
