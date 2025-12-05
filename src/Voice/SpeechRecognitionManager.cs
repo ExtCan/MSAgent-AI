@@ -18,13 +18,18 @@ namespace MSAgentAI.Voice
         private DateTime _lastSpeechTime;
         private string _currentUtterance;
         private Timer _silenceTimer;
-        private const int SilenceThresholdMs = 2000; // 2 seconds of silence
+        private const int SilenceThresholdMs = 1500; // 1.5 seconds of silence (reduced for better responsiveness)
+        private const double MinConfidenceThreshold = 0.2; // Lower threshold for better detection
+        private bool _speechInProgress;
+        private int _audioLevel;
 
         public event EventHandler<string> OnSpeechRecognized;
         public event EventHandler OnListeningStarted;
         public event EventHandler OnListeningStopped;
+        public event EventHandler<int> OnAudioLevelChanged;
 
         public bool IsListening => _isListening;
+        public int AudioLevel => _audioLevel;
 
         public SpeechRecognitionManager()
         {
@@ -35,10 +40,16 @@ namespace MSAgentAI.Voice
         {
             try
             {
-                Logger.Log("Initializing speech recognition...");
+                Logger.Log("Initializing speech recognition with improved detection...");
                 
                 // Create a speech recognition engine using the default recognizer
                 _recognizer = new SpeechRecognitionEngine();
+
+                // Configure for better accuracy
+                _recognizer.InitialSilenceTimeout = TimeSpan.FromSeconds(0); // No initial timeout
+                _recognizer.BabbleTimeout = TimeSpan.FromSeconds(0); // No babble timeout
+                _recognizer.EndSilenceTimeout = TimeSpan.FromSeconds(0.5); // Short end silence
+                _recognizer.EndSilenceTimeoutAmbiguous = TimeSpan.FromSeconds(0.75);
 
                 // Create a dictation grammar for free-form speech
                 var dictationGrammar = new DictationGrammar();
@@ -50,15 +61,40 @@ namespace MSAgentAI.Voice
                 _recognizer.SpeechHypothesized += OnSpeechHypothesized;
                 _recognizer.SpeechDetected += OnSpeechDetected;
                 _recognizer.RecognizeCompleted += OnRecognizeCompleted;
+                _recognizer.AudioLevelUpdated += OnAudioLevelUpdated;
+                _recognizer.AudioStateChanged += OnAudioStateChanged;
 
                 // Set input to default microphone
                 _recognizer.SetInputToDefaultAudioDevice();
 
-                Logger.Log("Speech recognition initialized successfully");
+                Logger.Log("Speech recognition initialized with improved detection settings");
             }
             catch (Exception ex)
             {
                 Logger.LogError("Failed to initialize speech recognition", ex);
+            }
+        }
+
+        private void OnAudioLevelUpdated(object sender, AudioLevelUpdatedEventArgs e)
+        {
+            _audioLevel = e.AudioLevel;
+            OnAudioLevelChanged?.Invoke(this, e.AudioLevel);
+            
+            // If audio level is significant, mark as speech in progress
+            if (e.AudioLevel > 10)
+            {
+                _lastSpeechTime = DateTime.Now;
+                _speechInProgress = true;
+            }
+        }
+
+        private void OnAudioStateChanged(object sender, AudioStateChangedEventArgs e)
+        {
+            Logger.Log($"Audio state changed: {e.AudioState}");
+            if (e.AudioState == AudioState.Speech)
+            {
+                _speechInProgress = true;
+                _lastSpeechTime = DateTime.Now;
             }
         }
 
@@ -71,16 +107,17 @@ namespace MSAgentAI.Voice
 
             try
             {
-                Logger.Log("Starting speech recognition...");
+                Logger.Log("Starting speech recognition with improved detection...");
                 _currentUtterance = "";
                 _lastSpeechTime = DateTime.Now;
                 _isListening = true;
+                _speechInProgress = false;
 
                 // Start continuous recognition
                 _recognizer.RecognizeAsync(RecognizeMode.Multiple);
 
-                // Start silence detection timer
-                _silenceTimer = new Timer(CheckSilence, null, 500, 500);
+                // Start silence detection timer (check more frequently)
+                _silenceTimer = new Timer(CheckSilence, null, 250, 250);
 
                 OnListeningStarted?.Invoke(this, EventArgs.Empty);
                 Logger.Log("Speech recognition started - listening for input");
@@ -128,17 +165,28 @@ namespace MSAgentAI.Voice
 
         private void OnSpeechRecognizedInternal(object sender, SpeechRecognizedEventArgs e)
         {
-            if (e.Result != null && e.Result.Confidence > 0.3)
+            if (e.Result != null && e.Result.Confidence >= MinConfidenceThreshold)
             {
                 _lastSpeechTime = DateTime.Now;
+                _speechInProgress = true;
                 _currentUtterance += " " + e.Result.Text;
-                Logger.Log($"Speech recognized: {e.Result.Text} (confidence: {e.Result.Confidence:F2})");
+                Logger.Log($"Speech recognized: \"{e.Result.Text}\" (confidence: {e.Result.Confidence:F2})");
+            }
+            else if (e.Result != null)
+            {
+                Logger.Log($"Low confidence speech ignored: \"{e.Result.Text}\" (confidence: {e.Result.Confidence:F2})");
             }
         }
 
         private void OnSpeechHypothesized(object sender, SpeechHypothesizedEventArgs e)
         {
             _lastSpeechTime = DateTime.Now;
+            _speechInProgress = true;
+            // Log hypothesized speech for debugging
+            if (e.Result != null && e.Result.Confidence >= 0.1)
+            {
+                Logger.Log($"Speech hypothesized: \"{e.Result.Text}\" (confidence: {e.Result.Confidence:F2})");
+            }
         }
 
         private void OnSpeechDetected(object sender, SpeechDetectedEventArgs e)
@@ -160,15 +208,17 @@ namespace MSAgentAI.Voice
 
             var silenceTime = (DateTime.Now - _lastSpeechTime).TotalMilliseconds;
             
-            if (silenceTime >= SilenceThresholdMs && !string.IsNullOrWhiteSpace(_currentUtterance))
+            // Only trigger if we had speech in progress and now have silence
+            if (_speechInProgress && silenceTime >= SilenceThresholdMs && !string.IsNullOrWhiteSpace(_currentUtterance))
             {
-                // 2 seconds of silence detected with accumulated speech
+                // Silence detected after speech - process the utterance
                 var finalText = _currentUtterance.Trim();
                 _currentUtterance = "";
+                _speechInProgress = false;
                 
-                Logger.Log($"Silence detected after speech: \"{finalText}\"");
+                Logger.Log($"Silence detected (1.5s) after speech: \"{finalText}\"");
                 
-                // Fire the event on UI thread
+                // Fire the event
                 OnSpeechRecognized?.Invoke(this, finalText);
             }
         }
