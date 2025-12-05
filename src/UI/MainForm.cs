@@ -87,6 +87,10 @@ namespace MSAgentAI.UI
                 {
                     DefaultCharacterPath = _settings.CharacterPath
                 };
+                
+                // Subscribe to agent events
+                _agentManager.OnClick += OnAgentClicked;
+                _agentManager.OnDragComplete += OnAgentMoved;
             }
             catch (Exception ex)
             {
@@ -144,7 +148,8 @@ namespace MSAgentAI.UI
             var speakJokeItem = new ToolStripMenuItem("Tell a Joke", null, OnSpeakJoke);
             var speakThoughtItem = new ToolStripMenuItem("Share a Thought", null, OnSpeakThought);
             var speakCustomItem = new ToolStripMenuItem("Say Something...", null, OnSpeakCustom);
-            speakItem.DropDownItems.AddRange(new ToolStripItem[] { speakJokeItem, speakThoughtItem, speakCustomItem });
+            var askOllamaItem = new ToolStripMenuItem("Ask Ollama...", null, OnAskOllama);
+            speakItem.DropDownItems.AddRange(new ToolStripItem[] { speakJokeItem, speakThoughtItem, speakCustomItem, askOllamaItem });
 
             var separatorItem2 = new ToolStripSeparator();
             var viewLogItem = new ToolStripMenuItem("View Log...", null, OnViewLog);
@@ -322,6 +327,36 @@ namespace MSAgentAI.UI
             }
         }
 
+        private async void OnAskOllama(object sender, EventArgs e)
+        {
+            if (!_settings.EnableOllamaChat)
+            {
+                MessageBox.Show("Ollama chat is not enabled. Please enable it in Settings.",
+                    "Chat Disabled", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            using (var dialog = new InputDialog("Ask Ollama", "Enter a prompt for Ollama AI:"))
+            {
+                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(dialog.InputText))
+                {
+                    try
+                    {
+                        var response = await _ollamaClient.ChatAsync(dialog.InputText, _cancellationTokenSource.Token);
+                        if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
+                        {
+                            _agentManager.Speak(response);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to get response from Ollama: {ex.Message}",
+                            "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
         private void OnViewLog(object sender, EventArgs e)
         {
             try
@@ -425,6 +460,31 @@ namespace MSAgentAI.UI
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"Random dialog error: {ex.Message}");
+                }
+            }
+        }
+
+        private void OnAgentClicked(object sender, Agent.AgentEventArgs e)
+        {
+            if (_agentManager?.IsLoaded == true)
+            {
+                var clickedLine = AppSettings.GetRandomLine(_settings.ClickedLines);
+                if (!string.IsNullOrEmpty(clickedLine))
+                {
+                    _agentManager.PlayAnimation("Surprised");
+                    _agentManager.Speak(clickedLine);
+                }
+            }
+        }
+
+        private void OnAgentMoved(object sender, Agent.AgentEventArgs e)
+        {
+            if (_agentManager?.IsLoaded == true)
+            {
+                var movedLine = AppSettings.GetRandomLine(_settings.MovedLines);
+                if (!string.IsNullOrEmpty(movedLine))
+                {
+                    _agentManager.Speak(movedLine);
                 }
             }
         }

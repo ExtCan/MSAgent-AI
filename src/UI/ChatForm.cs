@@ -88,11 +88,19 @@ namespace MSAgentAI.UI
             };
             _clearButton.Click += OnClearClick;
 
+            var promptButton = new Button
+            {
+                Text = "Send Prompt",
+                Location = new Point(120, 375),
+                Size = new Size(100, 25)
+            };
+            promptButton.Click += OnPromptClick;
+
             _statusLabel = new Label
             {
                 Text = "Ready",
-                Location = new Point(120, 378),
-                Size = new Size(355, 20),
+                Location = new Point(230, 378),
+                Size = new Size(245, 20),
                 ForeColor = Color.Gray
             };
 
@@ -100,7 +108,7 @@ namespace MSAgentAI.UI
             {
                 historyLabel, _chatHistoryTextBox,
                 inputLabel, _inputTextBox, _sendButton,
-                _clearButton, _statusLabel
+                _clearButton, promptButton, _statusLabel
             });
 
             this.AcceptButton = _sendButton;
@@ -185,6 +193,52 @@ namespace MSAgentAI.UI
             _chatHistoryTextBox.Clear();
             _ollamaClient.ClearHistory();
             _statusLabel.Text = "History cleared";
+        }
+
+        private async void OnPromptClick(object sender, EventArgs e)
+        {
+            using (var dialog = new InputDialog("Send Prompt", "Enter a custom prompt for Ollama AI (no history, direct response):"))
+            {
+                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrEmpty(dialog.InputText))
+                {
+                    _sendButton.Enabled = false;
+                    _statusLabel.Text = "Processing prompt...";
+                    _statusLabel.ForeColor = Color.Blue;
+
+                    try
+                    {
+                        var response = await _ollamaClient.GenerateRandomDialogAsync(dialog.InputText, _cancellationTokenSource.Token);
+
+                        if (!string.IsNullOrEmpty(response))
+                        {
+                            AppendToHistory("Prompt", dialog.InputText);
+                            AppendToHistory("Agent", response);
+
+                            if (_agentManager?.IsLoaded == true)
+                            {
+                                _agentManager.Speak(response);
+                            }
+
+                            _statusLabel.Text = "Ready";
+                            _statusLabel.ForeColor = Color.Gray;
+                        }
+                        else
+                        {
+                            _statusLabel.Text = "No response received";
+                            _statusLabel.ForeColor = Color.Orange;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _statusLabel.Text = "Error: " + ex.Message;
+                        _statusLabel.ForeColor = Color.Red;
+                    }
+                    finally
+                    {
+                        _sendButton.Enabled = true;
+                    }
+                }
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

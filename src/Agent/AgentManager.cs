@@ -18,13 +18,15 @@ namespace MSAgentAI.Agent
         private int _characterId;
         private bool _isLoaded;
         private bool _disposed;
+        private System.Windows.Forms.Timer _clickWatcher;
+        private System.Windows.Forms.Timer _moveWatcher;
+        private int _lastX = -1;
+        private int _lastY = -1;
 
-#pragma warning disable CS0067 // Event is never used - these are placeholders for future functionality
         public event EventHandler<AgentEventArgs> OnClick;
         public event EventHandler<AgentEventArgs> OnDragStart;
         public event EventHandler<AgentEventArgs> OnDragComplete;
         public event EventHandler<AgentEventArgs> OnIdle;
-#pragma warning restore CS0067
 
         public string DefaultCharacterPath { get; set; } = @"C:\Windows\msagent\chars";
 
@@ -45,6 +47,59 @@ namespace MSAgentAI.Agent
         public AgentManager()
         {
             InitializeAgent();
+            SetupEventWatchers();
+        }
+        
+        private void SetupEventWatchers()
+        {
+            // Use a timer to check for position changes (movement)
+            _moveWatcher = new System.Windows.Forms.Timer { Interval = 500 };
+            _moveWatcher.Tick += CheckForMovement;
+            _moveWatcher.Start();
+        }
+        
+        private void CheckForMovement(object sender, EventArgs e)
+        {
+            if (!_isLoaded || _character == null)
+                return;
+                
+            try
+            {
+                int currentX = _character.Left;
+                int currentY = _character.Top;
+                
+                if (_lastX >= 0 && _lastY >= 0)
+                {
+                    // Check if position changed significantly (more than 10 pixels)
+                    if (Math.Abs(currentX - _lastX) > 10 || Math.Abs(currentY - _lastY) > 10)
+                    {
+                        OnDragComplete?.Invoke(this, new AgentEventArgs 
+                        { 
+                            X = currentX, 
+                            Y = currentY,
+                            CharacterId = CharacterName
+                        });
+                    }
+                }
+                
+                _lastX = currentX;
+                _lastY = currentY;
+            }
+            catch
+            {
+                // Ignore errors when character not fully loaded
+            }
+        }
+        
+        /// <summary>
+        /// Call this method when the character is clicked (from external code)
+        /// </summary>
+        public void TriggerClick()
+        {
+            if (_isLoaded)
+            {
+                OnClick?.Invoke(this, new AgentEventArgs { CharacterId = CharacterName });
+            }
         }
         
         private void InitializeAgent()
@@ -672,6 +727,11 @@ namespace MSAgentAI.Agent
         {
             if (!_disposed)
             {
+                _moveWatcher?.Stop();
+                _moveWatcher?.Dispose();
+                _clickWatcher?.Stop();
+                _clickWatcher?.Dispose();
+                
                 UnloadCharacter();
 
                 if (_agentServer != null)
