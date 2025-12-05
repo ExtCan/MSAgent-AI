@@ -22,6 +22,9 @@ namespace MSAgentAI.Agent
         private System.Windows.Forms.Timer _moveWatcher;
         private int _lastX = -1;
         private int _lastY = -1;
+        private bool _isBeingDragged = false;
+        private DateTime _lastMoveEventTime = DateTime.MinValue;
+        private const int MoveEventCooldownMs = 2000; // 2 second cooldown between move events
 
         public event EventHandler<AgentEventArgs> OnClick;
         public event EventHandler<AgentEventArgs> OnDragStart;
@@ -71,14 +74,27 @@ namespace MSAgentAI.Agent
                 if (_lastX >= 0 && _lastY >= 0)
                 {
                     // Check if position changed significantly (more than 10 pixels)
-                    if (Math.Abs(currentX - _lastX) > 10 || Math.Abs(currentY - _lastY) > 10)
+                    bool hasMoved = Math.Abs(currentX - _lastX) > 10 || Math.Abs(currentY - _lastY) > 10;
+                    
+                    if (hasMoved)
                     {
-                        OnDragComplete?.Invoke(this, new AgentEventArgs 
-                        { 
-                            X = currentX, 
-                            Y = currentY,
-                            CharacterId = CharacterName
-                        });
+                        _isBeingDragged = true;
+                    }
+                    else if (_isBeingDragged)
+                    {
+                        // Movement stopped - fire event only if cooldown expired (prevents multiple events)
+                        _isBeingDragged = false;
+                        
+                        if ((DateTime.Now - _lastMoveEventTime).TotalMilliseconds >= MoveEventCooldownMs)
+                        {
+                            _lastMoveEventTime = DateTime.Now;
+                            OnDragComplete?.Invoke(this, new AgentEventArgs 
+                            { 
+                                X = currentX, 
+                                Y = currentY,
+                                CharacterId = CharacterName
+                            });
+                        }
                     }
                 }
                 

@@ -65,11 +65,15 @@ namespace MSAgentAI.UI
         private TextBox _personalityTextBox;
         private ComboBox _personalityPresetComboBox;
         private Button _applyPresetButton;
+        private Button _savePresetButton;
         private CheckBox _enableChatCheckBox;
         private CheckBox _enableRandomDialogCheckBox;
         private NumericUpDown _randomChanceNumeric;
         private CheckBox _enablePrewrittenIdleCheckBox;
         private NumericUpDown _prewrittenIdleChanceNumeric;
+
+        // Theme controls
+        private ComboBox _themeComboBox;
 
         // Lines controls
         private TabControl _linesTabControl;
@@ -479,21 +483,50 @@ namespace MSAgentAI.UI
                 Size = new Size(200, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
-            // Add personality presets
+            // Add personality presets (built-in + custom)
             _personalityPresetComboBox.Items.Add("(Custom)");
             foreach (var preset in AppSettings.PersonalityPresets.Keys)
             {
                 _personalityPresetComboBox.Items.Add(preset);
             }
+            // Add custom presets from settings
+            foreach (var preset in _settings.CustomPersonalityPresets.Keys)
+            {
+                _personalityPresetComboBox.Items.Add("[Custom] " + preset);
+            }
             _personalityPresetComboBox.SelectedIndex = 0;
 
             _applyPresetButton = new Button
             {
-                Text = "Apply Preset",
+                Text = "Apply",
                 Location = new Point(330, 86),
-                Size = new Size(90, 25)
+                Size = new Size(60, 25)
             };
             _applyPresetButton.Click += OnApplyPresetClick;
+
+            _savePresetButton = new Button
+            {
+                Text = "Save As...",
+                Location = new Point(395, 86),
+                Size = new Size(70, 25)
+            };
+            _savePresetButton.Click += OnSavePresetClick;
+
+            var themeLabel = new Label
+            {
+                Text = "UI Theme:",
+                Location = new Point(475, 90),
+                Size = new Size(60, 20)
+            };
+
+            _themeComboBox = new ComboBox
+            {
+                Location = new Point(535, 87),
+                Size = new Size(55, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _themeComboBox.Items.AddRange(new object[] { "Default", "Dark", "Deep Blue", "Deep Purple", "Wine Red", "Deep Green", "Pure Black" });
+            _themeComboBox.SelectedIndex = 0;
 
             var personalityLabel = new Label
             {
@@ -575,7 +608,8 @@ namespace MSAgentAI.UI
             {
                 urlLabel, _ollamaUrlTextBox, _testConnectionButton,
                 modelLabel, _ollamaModelComboBox, _refreshModelsButton,
-                presetLabel, _personalityPresetComboBox, _applyPresetButton,
+                presetLabel, _personalityPresetComboBox, _applyPresetButton, _savePresetButton,
+                themeLabel, _themeComboBox,
                 personalityLabel, _personalityTextBox,
                 _enableChatCheckBox, _enableRandomDialogCheckBox,
                 chanceLabel, _randomChanceNumeric,
@@ -668,6 +702,13 @@ namespace MSAgentAI.UI
             _prewrittenIdleChanceNumeric.Value = Math.Max(_prewrittenIdleChanceNumeric.Minimum,
                 Math.Min(_prewrittenIdleChanceNumeric.Maximum, _settings.PrewrittenIdleChance));
 
+            // Theme
+            int themeIndex = _themeComboBox.Items.IndexOf(_settings.UITheme);
+            if (themeIndex >= 0)
+                _themeComboBox.SelectedIndex = themeIndex;
+            else
+                _themeComboBox.SelectedIndex = 0;
+
             // Lines
             _linesTextBoxes["welcomeLines"].Text = string.Join(Environment.NewLine, _settings.WelcomeLines);
             _linesTextBoxes["idleLines"].Text = string.Join(Environment.NewLine, _settings.IdleLines);
@@ -708,6 +749,9 @@ namespace MSAgentAI.UI
             _settings.RandomDialogChance = (int)_randomChanceNumeric.Value;
             _settings.EnablePrewrittenIdle = _enablePrewrittenIdleCheckBox.Checked;
             _settings.PrewrittenIdleChance = (int)_prewrittenIdleChanceNumeric.Value;
+
+            // Theme
+            _settings.UITheme = _themeComboBox.SelectedItem?.ToString() ?? "Default";
 
             // Lines
             _settings.WelcomeLines = ParseLines(_linesTextBoxes["welcomeLines"].Text);
@@ -890,9 +934,41 @@ namespace MSAgentAI.UI
             if (_personalityPresetComboBox.SelectedIndex > 0)
             {
                 string presetName = _personalityPresetComboBox.SelectedItem.ToString();
-                if (AppSettings.PersonalityPresets.TryGetValue(presetName, out string preset))
+                
+                // Check if it's a custom preset
+                if (presetName.StartsWith("[Custom] "))
+                {
+                    string customName = presetName.Substring(9);
+                    if (_settings.CustomPersonalityPresets.TryGetValue(customName, out string customPreset))
+                    {
+                        _personalityTextBox.Text = customPreset;
+                    }
+                }
+                else if (AppSettings.PersonalityPresets.TryGetValue(presetName, out string preset))
                 {
                     _personalityTextBox.Text = preset;
+                }
+            }
+        }
+
+        private void OnSavePresetClick(object sender, EventArgs e)
+        {
+            using (var dialog = new InputDialog("Save Personality Preset", "Enter a name for this personality preset:"))
+            {
+                if (dialog.ShowDialog() == DialogResult.OK && !string.IsNullOrWhiteSpace(dialog.InputText))
+                {
+                    string presetName = dialog.InputText.Trim();
+                    _settings.CustomPersonalityPresets[presetName] = _personalityTextBox.Text;
+                    
+                    // Add to combo box if not already there
+                    string displayName = "[Custom] " + presetName;
+                    if (!_personalityPresetComboBox.Items.Contains(displayName))
+                    {
+                        _personalityPresetComboBox.Items.Add(displayName);
+                    }
+                    
+                    MessageBox.Show($"Personality preset '{presetName}' saved!", "Preset Saved",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
         }

@@ -243,7 +243,8 @@ namespace MSAgentAI.UI
         
         /// <summary>
         /// Speaks text with animation support. Extracts &&Animation triggers from text,
-        /// plays them, then speaks the processed text.
+        /// plays ONLY the first animation, then speaks the processed text.
+        /// MS Agent limitation: can only play one animation at a time before speaking.
         /// </summary>
         private void SpeakWithAnimations(string text, string defaultAnimation = null)
         {
@@ -256,13 +257,10 @@ namespace MSAgentAI.UI
             // Process text for ## name replacement and /emp/ emphasis
             cleanText = _settings.ProcessText(cleanText);
             
-            // Play animations
+            // Play ONLY THE FIRST animation (MS Agent limitation)
             if (animations.Count > 0)
             {
-                foreach (var anim in animations)
-                {
-                    _agentManager.PlayAnimation(anim);
-                }
+                _agentManager.PlayAnimation(animations[0]);
             }
             else if (!string.IsNullOrEmpty(defaultAnimation))
             {
