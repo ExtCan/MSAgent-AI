@@ -654,22 +654,20 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                // Convert 75-250 slider range to SAPI4 85-400 range
-                // Settings slider uses 75-250, SAPI4 uses 85-400
-                // Linear interpolation: output = 85 + (input - 75) * (400 - 85) / (250 - 75)
-                int speed = 85 + (_settings.VoiceSpeed - 75) * 315 / 175;
-                _agentManager.SetSpeechSpeed(speed);
+                // Speed: Settings slider uses 50-350 range, pass directly
+                _agentManager.SetSpeechSpeed(_settings.VoiceSpeed);
                 
-                // Pitch: settings uses 50-400, same as SAPI4
+                // Pitch: settings uses 50-400
                 _agentManager.SetSpeechPitch(_settings.VoicePitch);
                 
-                // Volume: settings uses 0-65535, same as SAPI4
+                // Volume: settings uses 0-65535 (stored but not directly controllable in MS Agent)
                 _agentManager.SetSpeechVolume(_settings.VoiceVolume);
                 
-                // Also set the TTS mode (voice) if selected
+                // Set the TTS mode (voice) if selected
                 if (!string.IsNullOrEmpty(_settings.SelectedVoiceId))
                 {
                     _agentManager.SetTTSModeID(_settings.SelectedVoiceId);
+                    Logger.Log($"Applied voice settings: Speed={_settings.VoiceSpeed}, Pitch={_settings.VoicePitch}, Voice={_settings.SelectedVoiceId}");
                 }
             }
         }

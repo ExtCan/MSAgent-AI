@@ -584,18 +584,16 @@ namespace MSAgentAI.Agent
         }
 
         /// <summary>
-        /// Makes the character speak the specified text with speed/pitch/volume tags
+        /// Makes the character speak the specified text
+        /// Speed/Pitch are set via character properties, not inline tags
         /// </summary>
         public void Speak(string text)
         {
             EnsureLoaded();
             if (!string.IsNullOrEmpty(text))
             {
-                // Prepend SAPI4 tags for speed/pitch/volume if set
-                string speechTags = BuildSpeechTags();
-                string fullText = speechTags + text;
-                
-                _character.Speak(fullText, null);
+                // Speak the text - speed/pitch/voice are set via SetSpeechSpeed/SetSpeechPitch/SetTTSModeID
+                _character.Speak(text, null);
             }
         }
 
@@ -787,61 +785,73 @@ namespace MSAgentAI.Agent
         public int SpeechVolume { get; set; } = 65535;
 
         /// <summary>
-        /// Sets the speech speed for the character (adds Spd tag to speech)
-        /// Range: 85-400, where 150 is normal
+        /// Sets the speech speed for the character directly on the character object
+        /// Range: 50-400, where 150 is normal
         /// </summary>
         public void SetSpeechSpeed(int speed)
         {
-            SpeechSpeed = Math.Max(85, Math.Min(400, speed));
-            Logger.Log($"Set speech speed to: {SpeechSpeed}");
+            SpeechSpeed = Math.Max(50, Math.Min(400, speed));
+            Logger.Log($"Setting speech speed to: {SpeechSpeed}");
+            
+            if (_isLoaded && _character != null)
+            {
+                try
+                {
+                    // Set Speed property directly on MS Agent character
+                    _character.Speed = (short)SpeechSpeed;
+                    Logger.Log($"Applied Speed={SpeechSpeed} to character");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Failed to set character Speed property", ex);
+                }
+            }
         }
 
         /// <summary>
-        /// Sets the speech pitch for the character (adds Pit tag to speech)
+        /// Sets the speech pitch for the character directly on the character object
         /// Range: 50-400, where 150 is normal
         /// </summary>
         public void SetSpeechPitch(int pitch)
         {
             SpeechPitch = Math.Max(50, Math.Min(400, pitch));
-            Logger.Log($"Set speech pitch to: {SpeechPitch}");
+            Logger.Log($"Setting speech pitch to: {SpeechPitch}");
+            
+            if (_isLoaded && _character != null)
+            {
+                try
+                {
+                    // Set Pitch property directly on MS Agent character
+                    _character.Pitch = (short)SpeechPitch;
+                    Logger.Log($"Applied Pitch={SpeechPitch} to character");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Failed to set character Pitch property", ex);
+                }
+            }
         }
 
         /// <summary>
-        /// Sets the speech volume for the character (adds Vol tag to speech)
-        /// Range: 0-65535
+        /// Sets the speech volume for the character
+        /// Range: 0-65535 (this is stored but MS Agent volume is typically controlled at system level)
         /// </summary>
         public void SetSpeechVolume(int volume)
         {
             SpeechVolume = Math.Max(0, Math.Min(65535, volume));
             Logger.Log($"Set speech volume to: {SpeechVolume}");
+            // Note: MS Agent doesn't have a direct Volume property on character
+            // Volume is typically controlled at the system audio level
         }
 
         /// <summary>
-        /// Builds SAPI4 tags for speed, pitch and volume
+        /// Builds SAPI4 tags for speed, pitch and volume (not used - properties set directly)
         /// </summary>
         private string BuildSpeechTags()
         {
-            var tags = "";
-            
-            // Speed tag: \Spd=XXX\
-            if (SpeechSpeed != 150)
-            {
-                tags += $"\\Spd={SpeechSpeed}\\";
-            }
-            
-            // Pitch tag: \Pit=XXX\
-            if (SpeechPitch != 150)
-            {
-                tags += $"\\Pit={SpeechPitch}\\";
-            }
-            
-            // Volume tag: \Vol=XXXXX\
-            if (SpeechVolume != 65535)
-            {
-                tags += $"\\Vol={SpeechVolume}\\";
-            }
-            
-            return tags;
+            // SAPI4 inline tags are not used with MS Agent
+            // Speed/Pitch are set via character properties
+            return "";
         }
 
         /// <summary>
@@ -852,11 +862,8 @@ namespace MSAgentAI.Agent
             EnsureLoaded();
             if (!string.IsNullOrEmpty(text))
             {
-                // Prepend SAPI4 tags for speed/pitch/volume
-                string speechTags = BuildSpeechTags();
-                string fullText = speechTags + text;
-                
-                _character.Speak(fullText, null);
+                // Just call Speak - speed/pitch are already set on character
+                _character.Speak(text, null);
             }
         }
 
