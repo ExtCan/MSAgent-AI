@@ -233,7 +233,7 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var welcomeLine = AppSettings.GetRandomLine(_settings.WelcomeLines);
+                var welcomeLine = _settings.GetProcessedRandomLine(_settings.WelcomeLines);
                 if (!string.IsNullOrEmpty(welcomeLine))
                 {
                     _agentManager.PlayAnimation("Greet");
@@ -289,7 +289,7 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var joke = AppSettings.GetRandomLine(_settings.Jokes);
+                var joke = _settings.GetProcessedRandomLine(_settings.Jokes);
                 if (!string.IsNullOrEmpty(joke))
                 {
                     _agentManager.PlayAnimation("Pleased");
@@ -302,7 +302,7 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var thought = AppSettings.GetRandomLine(_settings.Thoughts);
+                var thought = _settings.GetProcessedRandomLine(_settings.Thoughts);
                 if (!string.IsNullOrEmpty(thought))
                 {
                     _agentManager.Think(thought);
@@ -394,7 +394,7 @@ namespace MSAgentAI.UI
             // Show exit message
             if (_agentManager?.IsLoaded == true)
             {
-                var exitLine = AppSettings.GetRandomLine(_settings.ExitLines);
+                var exitLine = _settings.GetProcessedRandomLine(_settings.ExitLines);
                 if (!string.IsNullOrEmpty(exitLine))
                 {
                     _agentManager.PlayAnimation("Wave");
@@ -429,7 +429,7 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true && _random.Next(100) < IdleDialogChancePercent)
             {
-                var idleLine = AppSettings.GetRandomLine(_settings.IdleLines);
+                var idleLine = _settings.GetProcessedRandomLine(_settings.IdleLines);
                 if (!string.IsNullOrEmpty(idleLine))
                 {
                     _agentManager.Speak(idleLine);
@@ -468,7 +468,7 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var clickedLine = AppSettings.GetRandomLine(_settings.ClickedLines);
+                var clickedLine = _settings.GetProcessedRandomLine(_settings.ClickedLines);
                 if (!string.IsNullOrEmpty(clickedLine))
                 {
                     _agentManager.PlayAnimation("Surprised");
@@ -481,7 +481,7 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
-                var movedLine = AppSettings.GetRandomLine(_settings.MovedLines);
+                var movedLine = _settings.GetProcessedRandomLine(_settings.MovedLines);
                 if (!string.IsNullOrEmpty(movedLine))
                 {
                     _agentManager.Speak(movedLine);

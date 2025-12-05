@@ -39,6 +39,12 @@ namespace MSAgentAI.UI
         private Button _previewButton;
         private Button _selectButton;
         private Label _characterInfoLabel;
+        private ListBox _animationsListBox;
+        private Button _playAnimationButton;
+
+        // Name system controls
+        private TextBox _userNameTextBox;
+        private TextBox _userNamePronunciationTextBox;
 
         // Voice controls
         private ComboBox _voiceComboBox;
@@ -56,6 +62,8 @@ namespace MSAgentAI.UI
         private Button _refreshModelsButton;
         private Button _testConnectionButton;
         private TextBox _personalityTextBox;
+        private ComboBox _personalityPresetComboBox;
+        private Button _applyPresetButton;
         private CheckBox _enableChatCheckBox;
         private CheckBox _enableRandomDialogCheckBox;
         private NumericUpDown _randomChanceNumeric;
@@ -149,13 +157,13 @@ namespace MSAgentAI.UI
             _characterPathTextBox = new TextBox
             {
                 Location = new Point(120, 17),
-                Size = new Size(380, 23)
+                Size = new Size(280, 23)
             };
 
             _browsePathButton = new Button
             {
                 Text = "...",
-                Location = new Point(505, 16),
+                Location = new Point(405, 16),
                 Size = new Size(30, 25)
             };
             _browsePathButton.Click += OnBrowsePathClick;
@@ -163,29 +171,65 @@ namespace MSAgentAI.UI
             var refreshButton = new Button
             {
                 Text = "Refresh",
-                Location = new Point(540, 16),
+                Location = new Point(440, 16),
                 Size = new Size(60, 25)
             };
             refreshButton.Click += OnRefreshCharactersClick;
 
+            // Name system
+            var nameLabel = new Label
+            {
+                Text = "Your Name:",
+                Location = new Point(15, 50),
+                Size = new Size(100, 20)
+            };
+
+            _userNameTextBox = new TextBox
+            {
+                Location = new Point(120, 47),
+                Size = new Size(150, 23)
+            };
+
+            var pronunciationLabel = new Label
+            {
+                Text = "Pronunciation:",
+                Location = new Point(280, 50),
+                Size = new Size(85, 20)
+            };
+
+            _userNamePronunciationTextBox = new TextBox
+            {
+                Location = new Point(365, 47),
+                Size = new Size(135, 23)
+            };
+
+            var nameHintLabel = new Label
+            {
+                Text = "Use ## in lines to insert your name",
+                Location = new Point(120, 72),
+                Size = new Size(250, 15),
+                ForeColor = Color.Gray,
+                Font = new Font(this.Font.FontFamily, 7.5f)
+            };
+
             var listLabel = new Label
             {
                 Text = "Available Characters:",
-                Location = new Point(15, 55),
+                Location = new Point(15, 92),
                 Size = new Size(200, 20)
             };
 
             _characterListBox = new ListBox
             {
-                Location = new Point(15, 75),
-                Size = new Size(280, 280)
+                Location = new Point(15, 112),
+                Size = new Size(200, 200)
             };
             _characterListBox.SelectedIndexChanged += OnCharacterSelectionChanged;
 
             _previewButton = new Button
             {
                 Text = "Preview",
-                Location = new Point(15, 365),
+                Location = new Point(15, 318),
                 Size = new Size(80, 30),
                 Enabled = false
             };
@@ -194,8 +238,8 @@ namespace MSAgentAI.UI
             _selectButton = new Button
             {
                 Text = "Use This Character",
-                Location = new Point(100, 365),
-                Size = new Size(120, 30),
+                Location = new Point(100, 318),
+                Size = new Size(115, 30),
                 Enabled = false
             };
             _selectButton.Click += OnSelectCharacterClick;
@@ -203,15 +247,50 @@ namespace MSAgentAI.UI
             _characterInfoLabel = new Label
             {
                 Text = "Select a character to see information",
-                Location = new Point(310, 75),
-                Size = new Size(285, 280),
+                Location = new Point(225, 112),
+                Size = new Size(170, 80),
                 BorderStyle = BorderStyle.FixedSingle
+            };
+
+            // Animations list
+            var animLabel = new Label
+            {
+                Text = "Animations:",
+                Location = new Point(225, 197),
+                Size = new Size(100, 20)
+            };
+
+            _animationsListBox = new ListBox
+            {
+                Location = new Point(225, 217),
+                Size = new Size(170, 100)
+            };
+
+            _playAnimationButton = new Button
+            {
+                Text = "Play Animation",
+                Location = new Point(225, 318),
+                Size = new Size(100, 30),
+                Enabled = false
+            };
+            _playAnimationButton.Click += OnPlayAnimationClick;
+
+            // Emphasis hint
+            var empHintLabel = new Label
+            {
+                Text = "TIP: Use \\emp\\ in text for emphasis",
+                Location = new Point(405, 112),
+                Size = new Size(190, 40),
+                ForeColor = Color.Gray,
+                Font = new Font(this.Font.FontFamily, 7.5f)
             };
 
             _agentTab.Controls.AddRange(new Control[]
             {
                 pathLabel, _characterPathTextBox, _browsePathButton, refreshButton,
-                listLabel, _characterListBox, _previewButton, _selectButton, _characterInfoLabel
+                nameLabel, _userNameTextBox, pronunciationLabel, _userNamePronunciationTextBox, nameHintLabel,
+                listLabel, _characterListBox, _previewButton, _selectButton, _characterInfoLabel,
+                animLabel, _animationsListBox, _playAnimationButton, empHintLabel
             });
         }
 
@@ -376,17 +455,46 @@ namespace MSAgentAI.UI
             };
             _refreshModelsButton.Click += OnRefreshModelsClick;
 
+            var presetLabel = new Label
+            {
+                Text = "Preset:",
+                Location = new Point(15, 90),
+                Size = new Size(100, 20)
+            };
+
+            _personalityPresetComboBox = new ComboBox
+            {
+                Location = new Point(120, 87),
+                Size = new Size(200, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            // Add personality presets
+            _personalityPresetComboBox.Items.Add("(Custom)");
+            foreach (var preset in AppSettings.PersonalityPresets.Keys)
+            {
+                _personalityPresetComboBox.Items.Add(preset);
+            }
+            _personalityPresetComboBox.SelectedIndex = 0;
+
+            _applyPresetButton = new Button
+            {
+                Text = "Apply Preset",
+                Location = new Point(330, 86),
+                Size = new Size(90, 25)
+            };
+            _applyPresetButton.Click += OnApplyPresetClick;
+
             var personalityLabel = new Label
             {
                 Text = "Personality Prompt:",
-                Location = new Point(15, 95),
+                Location = new Point(15, 120),
                 Size = new Size(200, 20)
             };
 
             _personalityTextBox = new TextBox
             {
-                Location = new Point(15, 115),
-                Size = new Size(580, 120),
+                Location = new Point(15, 140),
+                Size = new Size(580, 100),
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical
             };
@@ -433,6 +541,7 @@ namespace MSAgentAI.UI
             {
                 urlLabel, _ollamaUrlTextBox, _testConnectionButton,
                 modelLabel, _ollamaModelComboBox, _refreshModelsButton,
+                presetLabel, _personalityPresetComboBox, _applyPresetButton,
                 personalityLabel, _personalityTextBox,
                 _enableChatCheckBox, _enableRandomDialogCheckBox,
                 chanceLabel, _randomChanceNumeric, promptsLabel
@@ -501,6 +610,8 @@ namespace MSAgentAI.UI
         {
             // Agent settings
             _characterPathTextBox.Text = _settings.CharacterPath;
+            _userNameTextBox.Text = _settings.UserName;
+            _userNamePronunciationTextBox.Text = _settings.UserNamePronunciation;
             RefreshCharacterList();
 
             // Voice settings
@@ -533,6 +644,8 @@ namespace MSAgentAI.UI
         {
             // Agent settings
             _settings.CharacterPath = _characterPathTextBox.Text;
+            _settings.UserName = _userNameTextBox.Text;
+            _settings.UserNamePronunciation = _userNamePronunciationTextBox.Text;
             if (_characterListBox.SelectedItem is CharacterItem selected)
             {
                 _settings.SelectedCharacterFile = selected.FilePath;
@@ -667,6 +780,46 @@ namespace MSAgentAI.UI
             if (_characterListBox.SelectedItem is CharacterItem item)
             {
                 _characterInfoLabel.Text = $"Name: {item.Name}\n\nPath: {item.FilePath}";
+                
+                // Load animations for the selected character
+                RefreshAnimationsList();
+            }
+        }
+
+        private void RefreshAnimationsList()
+        {
+            _animationsListBox.Items.Clear();
+            _playAnimationButton.Enabled = false;
+
+            if (_agentManager != null && _agentManager.IsLoaded)
+            {
+                var animations = _agentManager.GetAnimations();
+                foreach (var anim in animations)
+                {
+                    _animationsListBox.Items.Add(anim);
+                }
+                _playAnimationButton.Enabled = _animationsListBox.Items.Count > 0;
+            }
+        }
+
+        private void OnPlayAnimationClick(object sender, EventArgs e)
+        {
+            if (_animationsListBox.SelectedItem != null && _agentManager?.IsLoaded == true)
+            {
+                string animName = _animationsListBox.SelectedItem.ToString();
+                _agentManager.PlayAnimation(animName);
+            }
+        }
+
+        private void OnApplyPresetClick(object sender, EventArgs e)
+        {
+            if (_personalityPresetComboBox.SelectedIndex > 0)
+            {
+                string presetName = _personalityPresetComboBox.SelectedItem.ToString();
+                if (AppSettings.PersonalityPresets.TryGetValue(presetName, out string preset))
+                {
+                    _personalityTextBox.Text = preset;
+                }
             }
         }
 
@@ -680,6 +833,9 @@ namespace MSAgentAI.UI
                     _agentManager.Show(false);
                     _agentManager.PlayAnimation("Greet");
                     _agentManager.Speak("Hello! This is a preview of " + item.Name);
+                    
+                    // Refresh animations list after loading
+                    RefreshAnimationsList();
                 }
                 catch (Exception ex)
                 {
