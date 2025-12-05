@@ -18,6 +18,21 @@ namespace MSAgentAI.Config
         // User name system (## placeholder)
         public string UserName { get; set; } = "Friend";
         public string UserNamePronunciation { get; set; } = "Friend";
+        
+        // Pronunciation dictionary (word -> pronunciation)
+        public Dictionary<string, string> PronunciationDictionary { get; set; } = new Dictionary<string, string>
+        {
+            // Default entries - common mispronunciations
+            { "AI", "A I" },
+            { "API", "A P I" },
+            { "GUI", "G U I" },
+            { "URL", "U R L" },
+            { "HTTP", "H T T P" },
+            { "SAPI", "S A P I" },
+            { "TTS", "T T S" },
+            { "Ollama", "oh-lah-mah" },
+            { "BonziBUDDY", "bonzi buddy" }
+        };
 
         // Voice settings
         public string SelectedVoiceId { get; set; } = "";
@@ -196,19 +211,44 @@ namespace MSAgentAI.Config
             if (string.IsNullOrEmpty(text))
                 return text;
 
-            // Replace ## with user name pronunciation
-            text = text.Replace("##", UserNamePronunciation);
+            // Apply pronunciation dictionary using \map\ command
+            // Format: \map="pronunciation"="word"\
+            foreach (var entry in PronunciationDictionary)
+            {
+                if (text.IndexOf(entry.Key, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    // Use \map\ command for pronunciation mapping
+                    string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
+                    text = text.Insert(0, mapCommand);
+                }
+            }
+
+            // Replace ## with user name pronunciation using \map\ command
+            if (text.Contains("##"))
+            {
+                // Insert map command for name at the beginning
+                string nameMapCommand = $"\\map=\"{UserNamePronunciation}\"=\"{UserName}\"\\";
+                text = text.Insert(0, nameMapCommand);
+                // Replace ## with the display name
+                text = text.Replace("##", UserName);
+            }
 
             // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)
             // SAPI4 uses backslash escape sequences like \Emp\ for emphasis
             text = text.Replace("/emp/", "\\Emp\\");
             text = text.Replace("\\emp\\", "\\Emp\\"); // Normalize existing ones
             
+            // Handle whisper tags - convert [whisper] or *whisper* to \chr="Whisper"\
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\[whisper\]", "\\chr=\"Whisper\"\\", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\[/whisper\]", "\\chr=\"Normal\"\\", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            
             // Also support other SAPI4 tags
             // \Pau=N\ - pause for N milliseconds
             // \Vol=N\ - set volume (0-65535)
             // \Spd=N\ - set speed
             // \Pit=N\ - set pitch
+            // \chr="Whisper"\ - switch to whisper mode
+            // \chr="Normal"\ - switch back to normal
 
             return text;
         }
