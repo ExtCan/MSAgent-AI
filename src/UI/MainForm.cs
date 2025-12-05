@@ -25,9 +25,12 @@ namespace MSAgentAI.UI
         private Sapi4Manager _voiceManager;
         private OllamaClient _ollamaClient;
         private AppSettings _settings;
+        private SpeechRecognitionManager _speechRecognition;
+        private bool _inCallMode;
 
         private NotifyIcon _trayIcon;
         private ContextMenuStrip _trayMenu;
+        private ToolStripMenuItem _callModeItem;
         private System.Windows.Forms.Timer _idleTimer;
         private System.Windows.Forms.Timer _randomDialogTimer;
         private Random _random = new Random();
@@ -141,6 +144,7 @@ namespace MSAgentAI.UI
             var showAgentItem = new ToolStripMenuItem("Show/Hide Agent", null, OnShowHideAgent);
             var settingsItem = new ToolStripMenuItem("Settings...", null, OnOpenSettings);
             var chatItem = new ToolStripMenuItem("Chat...", null, OnOpenChat);
+            _callModeItem = new ToolStripMenuItem("📞 Call Mode (Voice Chat)", null, OnToggleCallMode);
             var speakItem = new ToolStripMenuItem("Speak", null);
             var pokeItem = new ToolStripMenuItem("Poke (Random AI)", null, OnPoke);
             var separatorItem1 = new ToolStripSeparator();
@@ -163,6 +167,7 @@ namespace MSAgentAI.UI
                 separatorItem1,
                 settingsItem,
                 chatItem,
+                _callModeItem,
                 speakItem,
                 pokeItem,
                 separatorItem2,
@@ -442,6 +447,140 @@ namespace MSAgentAI.UI
             }
         }
 
+        /// <summary>
+        /// Toggle Call Mode - voice-activated chat with the AI
+        /// </summary>
+        private void OnToggleCallMode(object sender, EventArgs e)
+        {
+            if (!_settings.EnableOllamaChat)
+            {
+                MessageBox.Show("Ollama chat is not enabled. Please enable it in Settings to use Call Mode.",
+                    "Chat Disabled", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (_agentManager?.IsLoaded != true)
+            {
+                MessageBox.Show("No agent is currently loaded. Please go to Settings and select a character.",
+                    "No Agent", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            if (_inCallMode)
+            {
+                StopCallMode();
+            }
+            else
+            {
+                StartCallMode();
+            }
+        }
+
+        private void StartCallMode()
+        {
+            try
+            {
+                Logger.Log("Starting Call Mode...");
+                
+                // Initialize speech recognition if needed
+                if (_speechRecognition == null)
+                {
+                    _speechRecognition = new SpeechRecognitionManager();
+                    _speechRecognition.OnSpeechRecognized += OnSpeechRecognizedInCallMode;
+                    _speechRecognition.OnListeningStarted += (s, e) => Logger.Log("Call Mode: Listening started");
+                    _speechRecognition.OnListeningStopped += (s, e) => Logger.Log("Call Mode: Listening stopped");
+                }
+
+                _inCallMode = true;
+                _callModeItem.Text = "📞 Call Mode (ACTIVE - Click to Stop)";
+                _callModeItem.Checked = true;
+                
+                // Announce call mode started
+                SpeakWithAnimations("I'm listening. Go ahead and speak!", "Listen");
+                
+                // Start listening after a short delay to let the TTS finish
+                Task.Delay(2000).ContinueWith(_ => {
+                    if (_inCallMode)
+                    {
+                        _speechRecognition.StartListening();
+                    }
+                });
+                
+                Logger.Log("Call Mode started successfully");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to start Call Mode", ex);
+                MessageBox.Show($"Failed to start Call Mode: {ex.Message}\n\nMake sure you have a microphone connected.",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                _inCallMode = false;
+            }
+        }
+
+        private void StopCallMode()
+        {
+            Logger.Log("Stopping Call Mode...");
+            
+            _inCallMode = false;
+            _callModeItem.Text = "📞 Call Mode (Voice Chat)";
+            _callModeItem.Checked = false;
+            
+            _speechRecognition?.StopListening();
+            
+            // Announce call mode ended
+            SpeakWithAnimations("Call ended. Talk to you later!", "Wave");
+            
+            Logger.Log("Call Mode stopped");
+        }
+
+        private async void OnSpeechRecognizedInCallMode(object sender, string spokenText)
+        {
+            if (!_inCallMode || string.IsNullOrWhiteSpace(spokenText))
+                return;
+
+            Logger.Log($"Call Mode - User said: {spokenText}");
+            
+            // Stop listening while processing
+            _speechRecognition?.StopListening();
+            
+            try
+            {
+                // Get AI response
+                var response = await _ollamaClient.ChatAsync(spokenText, _cancellationTokenSource.Token);
+                
+                if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
+                {
+                    Logger.Log($"Call Mode - AI response: {response}");
+                    
+                    // Speak the response
+                    SpeakWithAnimations(response);
+                    
+                    // Wait for speech to complete, then resume listening
+                    // Estimate speech duration based on text length (rough estimate: 100ms per character)
+                    int estimatedDuration = Math.Max(3000, response.Length * 80);
+                    
+                    await Task.Delay(estimatedDuration);
+                    
+                    // Resume listening if still in call mode
+                    if (_inCallMode)
+                    {
+                        _speechRecognition?.StartListening();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Call Mode - Error getting AI response", ex);
+                
+                // Resume listening on error
+                if (_inCallMode)
+                {
+                    await Task.Delay(1000);
+                    _speechRecognition?.StartListening();
+                }
+            }
+        }
+
         private void OnViewLog(object sender, EventArgs e)
         {
             try
@@ -682,6 +821,14 @@ namespace MSAgentAI.UI
             _cancellationTokenSource?.Cancel();
             _idleTimer?.Stop();
             _randomDialogTimer?.Stop();
+
+            // Stop call mode if active
+            if (_inCallMode)
+            {
+                _inCallMode = false;
+                _speechRecognition?.StopListening();
+            }
+            _speechRecognition?.Dispose();
 
             _trayIcon?.Dispose();
             _agentManager?.Dispose();
