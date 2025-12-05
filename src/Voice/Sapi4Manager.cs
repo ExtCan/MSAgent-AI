@@ -62,34 +62,31 @@ namespace MSAgentAI.Voice
         }
 
         /// <summary>
-        /// Gets available SAPI4 voices from the registry
+        /// Gets available SAPI4 TTS Modes from the registry (the way MS Agent/CyberBuddy does it)
+        /// Looks in HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\TTSMode
+        /// Each voice has a ModeID GUID that is used to set the TTS mode in MS Agent
         /// </summary>
         public List<VoiceInfo> GetAvailableVoices()
         {
             var voices = new List<VoiceInfo>();
 
-            Logger.Log("Enumerating SAPI4 voices...");
+            Logger.Log("Enumerating SAPI4 TTS Modes...");
 
             try
             {
-                // SAPI4 voices are stored in the TTSEnumerator registry
-                // Check multiple locations for SAPI4 voices
+                // Primary location: TTS Modes in Speech registry (CyberBuddy approach)
+                // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\TTSMode
+                EnumerateTTSModes(voices);
 
-                // Location 1: HKLM\SOFTWARE\Microsoft\Speech\Voices (SAPI4 style)
-                EnumerateVoicesFromKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Speech\Voices", voices);
-
-                // Location 2: Legacy SAPI4 TTS Engines
-                EnumerateVoicesFromKey(Registry.LocalMachine, @"SOFTWARE\Microsoft\Speech\TTS Engines", voices);
-
-                // Location 3: Check for MS Agent compatible voices
-                EnumerateSapi4ModesFromKey(Registry.ClassesRoot, @"CLSID", voices);
+                // Fallback: Check for voices using Tokens (newer SAPI)
+                EnumerateVoiceTokens(voices);
             }
             catch (Exception ex)
             {
                 Logger.LogError("Error enumerating SAPI4 voices", ex);
             }
 
-            Logger.Log($"Found {voices.Count} SAPI4 voices");
+            Logger.Log($"Found {voices.Count} SAPI4 TTS modes");
 
             // Add default if none found
             if (voices.Count == 0)
@@ -106,87 +103,130 @@ namespace MSAgentAI.Voice
             return voices;
         }
 
-        private void EnumerateVoicesFromKey(RegistryKey root, string path, List<VoiceInfo> voices)
+        /// <summary>
+        /// Enumerate TTS Modes from the registry - this is the proper SAPI4 way
+        /// </summary>
+        private void EnumerateTTSModes(List<VoiceInfo> voices)
+        {
+            // Check both 32-bit and 64-bit registry locations
+            string[] registryPaths = new[]
+            {
+                @"SOFTWARE\Microsoft\Speech\Voices\TTSMode",
+                @"SOFTWARE\WOW6432Node\Microsoft\Speech\Voices\TTSMode",
+                @"SOFTWARE\Microsoft\Speech\Voices\Tokens",
+                @"SOFTWARE\WOW6432Node\Microsoft\Speech\Voices\Tokens"
+            };
+
+            foreach (var basePath in registryPaths)
+            {
+                try
+                {
+                    using (var key = Registry.LocalMachine.OpenSubKey(basePath))
+                    {
+                        if (key == null) continue;
+
+                        foreach (var modeName in key.GetSubKeyNames())
+                        {
+                            try
+                            {
+                                using (var modeKey = key.OpenSubKey(modeName))
+                                {
+                                    if (modeKey == null) continue;
+
+                                    // Get ModeID (GUID) - this is what MS Agent needs
+                                    string modeId = modeName;
+                                    
+                                    // Try to get ModeID from subkey value if it exists
+                                    var modeIdValue = modeKey.GetValue("ModeID");
+                                    if (modeIdValue != null)
+                                    {
+                                        modeId = modeIdValue.ToString();
+                                    }
+
+                                    // Get display name from various possible locations
+                                    string displayName = modeKey.GetValue("")?.ToString();
+                                    if (string.IsNullOrEmpty(displayName))
+                                    {
+                                        displayName = modeKey.GetValue("VoiceName")?.ToString();
+                                    }
+                                    if (string.IsNullOrEmpty(displayName))
+                                    {
+                                        // Check Attributes subkey
+                                        using (var attrKey = modeKey.OpenSubKey("Attributes"))
+                                        {
+                                            if (attrKey != null)
+                                            {
+                                                displayName = attrKey.GetValue("Name")?.ToString();
+                                            }
+                                        }
+                                    }
+                                    if (string.IsNullOrEmpty(displayName))
+                                    {
+                                        displayName = modeName;
+                                    }
+
+                                    // Skip duplicates
+                                    if (voices.Exists(v => v.ModeId == modeId || v.Name == displayName))
+                                        continue;
+
+                                    voices.Add(new VoiceInfo
+                                    {
+                                        Id = modeId,
+                                        Name = displayName,
+                                        ModeId = modeId,
+                                        IsSapi4 = true
+                                    });
+
+                                    Logger.Log($"Found SAPI4 TTS Mode: {displayName} (ModeID: {modeId})");
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+
+        /// <summary>
+        /// Enumerate voice tokens (SAPI5 style, fallback)
+        /// </summary>
+        private void EnumerateVoiceTokens(List<VoiceInfo> voices)
         {
             try
             {
-                using (var key = root.OpenSubKey(path))
+                // Also try OneCore voices (Windows 10+) as fallback
+                using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens"))
                 {
                     if (key == null) return;
 
-                    foreach (var voiceName in key.GetSubKeyNames())
+                    foreach (var tokenName in key.GetSubKeyNames())
                     {
                         try
                         {
-                            using (var voiceKey = key.OpenSubKey(voiceName))
+                            using (var tokenKey = key.OpenSubKey(tokenName))
                             {
-                                if (voiceKey == null) continue;
+                                if (tokenKey == null) continue;
 
-                                // Try to get voice info
-                                var displayName = voiceKey.GetValue("")?.ToString() 
-                                    ?? voiceKey.GetValue("VoiceName")?.ToString() 
-                                    ?? voiceName;
-                                var modeId = voiceKey.GetValue("ModeID")?.ToString()
-                                    ?? voiceKey.GetValue("CLSID")?.ToString();
-
-                                // Skip if already added
-                                if (voices.Exists(v => v.Name == displayName || v.ModeId == modeId))
+                                string displayName = tokenKey.GetValue("")?.ToString() ?? tokenName;
+                                
+                                // Skip duplicates
+                                if (voices.Exists(v => v.Name == displayName))
                                     continue;
 
                                 voices.Add(new VoiceInfo
                                 {
-                                    Id = voiceName,
-                                    Name = displayName,
-                                    ModeId = modeId,
-                                    IsSapi4 = true
+                                    Id = tokenName,
+                                    Name = displayName + " (SAPI5)",
+                                    ModeId = tokenName,
+                                    IsSapi4 = false
                                 });
 
-                                Logger.Log($"Found SAPI4 voice: {displayName} (ModeID: {modeId})");
+                                Logger.Log($"Found SAPI5 voice: {displayName}");
                             }
                         }
                         catch { }
                     }
-                }
-            }
-            catch { }
-        }
-
-        private void EnumerateSapi4ModesFromKey(RegistryKey root, string path, List<VoiceInfo> voices)
-        {
-            // Look for TTS Mode IDs which are GUIDs for SAPI4 voices
-            try
-            {
-                // Check common SAPI4 voice CLSIDs
-                string[] knownSapi4Clsids = new[]
-                {
-                    "{99EE9160-AFC2-11D1-A8DC-00A0C90894F3}", // MS Sam
-                    "{99EE9162-AFC2-11D1-A8DC-00A0C90894F3}", // MS Mary
-                    "{99EE9166-AFC2-11D1-A8DC-00A0C90894F3}", // MS Mike
-                };
-
-                foreach (var clsid in knownSapi4Clsids)
-                {
-                    try
-                    {
-                        using (var key = root.OpenSubKey($@"CLSID\{clsid}"))
-                        {
-                            if (key != null)
-                            {
-                                var name = key.GetValue("")?.ToString() ?? "Unknown Voice";
-                                if (!voices.Exists(v => v.ModeId == clsid))
-                                {
-                                    voices.Add(new VoiceInfo
-                                    {
-                                        Id = clsid,
-                                        Name = name,
-                                        ModeId = clsid,
-                                        IsSapi4 = true
-                                    });
-                                }
-                            }
-                        }
-                    }
-                    catch { }
                 }
             }
             catch { }

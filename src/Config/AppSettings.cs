@@ -118,6 +118,12 @@ namespace MSAgentAI.Config
         // Window position
         public int WindowX { get; set; } = 100;
         public int WindowY { get; set; } = 100;
+        
+        // Agent size (100 = normal, 50 = half, 200 = double)
+        public int AgentSize { get; set; } = 100;
+        
+        // Idle animation spacing (in idle timer ticks - higher = less frequent)
+        public int IdleAnimationSpacing { get; set; } = 5;
 
         private static readonly string SettingsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -254,7 +260,8 @@ namespace MSAgentAI.Config
             { "Robot", "BEEP BOOP. You are a robot companion. You speak in a mechanical manner, occasionally malfunction, and love efficiency. PROCESSING... Keep responses short and robotic." },
             { "Poet", "You are a poetic companion who speaks in verse. You rhyme when you can, use flowery language, and appreciate beauty. Keep responses short but lyrical." },
             { "Conspiracy", "You are a conspiracy theorist companion. Everything is connected. You see hidden meanings everywhere and trust no one. Keep responses short and paranoid." },
-            { "Grandparent", "You are a wise, elderly companion. You share life lessons, remember 'the old days', and offer gentle advice. Keep responses short and full of wisdom." }
+            { "Grandparent", "You are a wise, elderly companion. You share life lessons, remember 'the old days', and offer gentle advice. Keep responses short and full of wisdom." },
+            { "BonziBUDDY", "You are BonziBUDDY, a helpful purple gorilla desktop companion from the late 90s! You're friendly, eager to help with anything, and love to tell jokes and sing songs. You're nostalgic for the dial-up internet era. Keep responses short and enthusiastic! You might occasionally mention your friends Peedy and Merlin. You love bananas!" }
         };
 
         /// <summary>

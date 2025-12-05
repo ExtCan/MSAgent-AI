@@ -142,6 +142,7 @@ namespace MSAgentAI.UI
             var settingsItem = new ToolStripMenuItem("Settings...", null, OnOpenSettings);
             var chatItem = new ToolStripMenuItem("Chat...", null, OnOpenChat);
             var speakItem = new ToolStripMenuItem("Speak", null);
+            var pokeItem = new ToolStripMenuItem("Poke (Random AI)", null, OnPoke);
             var separatorItem1 = new ToolStripSeparator();
 
             // Speak submenu
@@ -163,6 +164,7 @@ namespace MSAgentAI.UI
                 settingsItem,
                 chatItem,
                 speakItem,
+                pokeItem,
                 separatorItem2,
                 viewLogItem,
                 aboutItem,
@@ -183,10 +185,10 @@ namespace MSAgentAI.UI
 
         private void InitializeTimers()
         {
-            // Idle timer - triggers idle lines periodically
+            // Idle timer - triggers idle lines periodically (60 seconds - more spaced out)
             _idleTimer = new System.Windows.Forms.Timer
             {
-                Interval = 30000 // 30 seconds
+                Interval = 60000 // 60 seconds - spaced out more
             };
             _idleTimer.Tick += OnIdleTimerTick;
             _idleTimer.Start();
@@ -395,6 +397,42 @@ namespace MSAgentAI.UI
             }
         }
 
+        /// <summary>
+        /// Poke - triggers a random AI-generated dialog on demand
+        /// </summary>
+        private async void OnPoke(object sender, EventArgs e)
+        {
+            if (!_settings.EnableOllamaChat)
+            {
+                MessageBox.Show("Ollama chat is not enabled. Please enable it in Settings to use Poke.",
+                    "Chat Disabled", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            try
+            {
+                var prompt = GetRandomLine(_settings.RandomDialogPrompts);
+                if (!string.IsNullOrEmpty(prompt))
+                {
+                    var response = await _ollamaClient.GenerateRandomDialogAsync(prompt, _cancellationTokenSource.Token);
+                    if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
+                    {
+                        SpeakWithAnimations(response);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("No random prompts configured. Please add some in Settings > Lines > Random Prompts.",
+                        "No Prompts", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to get response from Ollama: {ex.Message}",
+                    "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         private void OnViewLog(object sender, EventArgs e)
         {
             try
@@ -582,6 +620,9 @@ namespace MSAgentAI.UI
                         // Check if we need to reload
                         _agentManager.LoadCharacter(currentPath);
                         _agentManager.Show(false);
+                        
+                        // Apply agent size
+                        _agentManager.SetSize(_settings.AgentSize);
                     }
                 }
                 catch (Exception ex)

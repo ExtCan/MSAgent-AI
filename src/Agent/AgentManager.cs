@@ -643,6 +643,34 @@ namespace MSAgentAI.Agent
             EnsureLoaded();
             _character.MoveTo((short)x, (short)y, speed);
         }
+        
+        /// <summary>
+        /// Sets the character's size (as a percentage, 100 = normal)
+        /// </summary>
+        public void SetSize(int sizePercent)
+        {
+            if (_isLoaded && _character != null)
+            {
+                try
+                {
+                    // MS Agent uses Height and Width properties (in pixels)
+                    // We need to get the original size and scale it
+                    int originalHeight = _character.OriginalHeight;
+                    int originalWidth = _character.OriginalWidth;
+                    
+                    int newHeight = (originalHeight * sizePercent) / 100;
+                    int newWidth = (originalWidth * sizePercent) / 100;
+                    
+                    _character.Height = (short)newHeight;
+                    _character.Width = (short)newWidth;
+                }
+                catch
+                {
+                    // Size properties may not be available on all agents
+                    // Try alternate approach using AutoPopupMenu style
+                }
+            }
+        }
 
         /// <summary>
         /// Gets or sets the character's idle mode

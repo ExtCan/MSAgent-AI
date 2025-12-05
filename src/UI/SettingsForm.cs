@@ -74,6 +74,10 @@ namespace MSAgentAI.UI
 
         // Theme controls
         private ComboBox _themeComboBox;
+        
+        // Agent size control
+        private TrackBar _agentSizeTrackBar;
+        private Label _agentSizeValueLabel;
 
         // Lines controls
         private TabControl _linesTabControl;
@@ -93,6 +97,58 @@ namespace MSAgentAI.UI
 
             InitializeComponent();
             LoadSettings();
+            ApplyTheme(); // Apply theme to settings form
+        }
+        
+        /// <summary>
+        /// Applies the current UI theme to this form and all child controls
+        /// </summary>
+        private void ApplyTheme()
+        {
+            var theme = AppSettings.GetThemeColors(_settings.UITheme);
+            ApplyThemeToControl(this, theme);
+        }
+        
+        /// <summary>
+        /// Recursively applies theme colors to a control and its children
+        /// </summary>
+        public static void ApplyThemeToControl(Control control, ThemeColors theme)
+        {
+            control.BackColor = theme.Background;
+            control.ForeColor = theme.Foreground;
+            
+            if (control is Button btn)
+            {
+                btn.BackColor = theme.ButtonBackground;
+                btn.ForeColor = theme.ButtonForeground;
+                btn.FlatStyle = theme.Background == System.Drawing.SystemColors.Control ? FlatStyle.Standard : FlatStyle.Flat;
+            }
+            else if (control is TextBox || control is RichTextBox)
+            {
+                control.BackColor = theme.InputBackground;
+                control.ForeColor = theme.InputForeground;
+            }
+            else if (control is ListBox || control is ComboBox)
+            {
+                control.BackColor = theme.InputBackground;
+                control.ForeColor = theme.InputForeground;
+            }
+            else if (control is TabControl tabControl)
+            {
+                // TabControl needs special handling
+                foreach (TabPage page in tabControl.TabPages)
+                {
+                    page.BackColor = theme.Background;
+                    page.ForeColor = theme.Foreground;
+                    ApplyThemeToControl(page, theme);
+                }
+            }
+            
+            // Recurse into child controls
+            foreach (Control child in control.Controls)
+            {
+                ApplyThemeToControl(child, theme);
+            }
         }
 
         private void InitializeComponent()
@@ -299,13 +355,40 @@ namespace MSAgentAI.UI
                 ForeColor = Color.Gray,
                 Font = new Font(this.Font.FontFamily, 7.5f)
             };
+            
+            // Agent size control
+            var agentSizeLabel = new Label
+            {
+                Text = "Agent Size:",
+                Location = new Point(405, 160),
+                Size = new Size(70, 20)
+            };
+            
+            _agentSizeTrackBar = new TrackBar
+            {
+                Location = new Point(405, 180),
+                Size = new Size(150, 45),
+                Minimum = 25,
+                Maximum = 200,
+                Value = 100,
+                TickFrequency = 25
+            };
+            _agentSizeTrackBar.ValueChanged += (s, e) => _agentSizeValueLabel.Text = _agentSizeTrackBar.Value.ToString() + "%";
+            
+            _agentSizeValueLabel = new Label
+            {
+                Text = "100%",
+                Location = new Point(560, 160),
+                Size = new Size(40, 20)
+            };
 
             _agentTab.Controls.AddRange(new Control[]
             {
                 pathLabel, _characterPathTextBox, _browsePathButton, refreshButton,
                 nameLabel, _userNameTextBox, pronunciationLabel, _userNamePronunciationTextBox, _testNameButton, nameHintLabel,
                 listLabel, _characterListBox, _previewButton, _selectButton, _characterInfoLabel,
-                animLabel, _animationsListBox, _playAnimationButton, empHintLabel
+                animLabel, _animationsListBox, _playAnimationButton, empHintLabel,
+                agentSizeLabel, _agentSizeTrackBar, _agentSizeValueLabel
             });
         }
 
@@ -689,6 +772,10 @@ namespace MSAgentAI.UI
             _speedTrackBar.Value = Math.Max(_speedTrackBar.Minimum, Math.Min(_speedTrackBar.Maximum, _settings.VoiceSpeed));
             _pitchTrackBar.Value = Math.Max(_pitchTrackBar.Minimum, Math.Min(_pitchTrackBar.Maximum, _settings.VoicePitch));
             _volumeTrackBar.Value = (int)(_settings.VoiceVolume / VolumeScaleFactor); // Convert from 0-65535 to 0-100
+            
+            // Agent size
+            _agentSizeTrackBar.Value = Math.Max(_agentSizeTrackBar.Minimum, Math.Min(_agentSizeTrackBar.Maximum, _settings.AgentSize));
+            _agentSizeValueLabel.Text = _agentSizeTrackBar.Value.ToString() + "%";
 
             // Ollama settings
             _ollamaUrlTextBox.Text = _settings.OllamaUrl;
@@ -739,6 +826,9 @@ namespace MSAgentAI.UI
             _settings.VoiceSpeed = _speedTrackBar.Value;
             _settings.VoicePitch = _pitchTrackBar.Value;
             _settings.VoiceVolume = (int)(_volumeTrackBar.Value * VolumeScaleFactor);
+            
+            // Agent size
+            _settings.AgentSize = _agentSizeTrackBar.Value;
 
             // Ollama settings
             _settings.OllamaUrl = _ollamaUrlTextBox.Text;
