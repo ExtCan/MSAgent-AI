@@ -222,6 +222,15 @@ namespace MSAgentAI.UI
                         {
                             _agentManager.SetTTSModeID(_settings.SelectedVoiceId);
                         }
+                        
+                        // Apply voice speed, pitch, and volume
+                        ApplyVoiceSettingsToAgent();
+                        
+                        // Apply agent size
+                        if (_settings.AgentSize != 100)
+                        {
+                            _agentManager.SetSize(_settings.AgentSize);
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -584,6 +593,9 @@ namespace MSAgentAI.UI
                     _voiceManager.SetVoice(_settings.SelectedVoiceId);
                 }
             }
+            
+            // Apply voice settings to agent for actual TTS
+            ApplyVoiceSettingsToAgent();
 
             // Update Ollama settings
             if (_ollamaClient != null)
@@ -633,6 +645,33 @@ namespace MSAgentAI.UI
 
             // Save settings
             _settings.Save();
+        }
+        
+        /// <summary>
+        /// Applies voice speed, pitch, and volume settings to the agent
+        /// </summary>
+        private void ApplyVoiceSettingsToAgent()
+        {
+            if (_agentManager?.IsLoaded == true)
+            {
+                // Convert 75-250 slider range to SAPI4 85-400 range
+                // Settings slider uses 75-250, SAPI4 uses 85-400
+                // Linear interpolation: output = 85 + (input - 75) * (400 - 85) / (250 - 75)
+                int speed = 85 + (_settings.VoiceSpeed - 75) * 315 / 175;
+                _agentManager.SetSpeechSpeed(speed);
+                
+                // Pitch: settings uses 50-400, same as SAPI4
+                _agentManager.SetSpeechPitch(_settings.VoicePitch);
+                
+                // Volume: settings uses 0-65535, same as SAPI4
+                _agentManager.SetSpeechVolume(_settings.VoiceVolume);
+                
+                // Also set the TTS mode (voice) if selected
+                if (!string.IsNullOrEmpty(_settings.SelectedVoiceId))
+                {
+                    _agentManager.SetTTSModeID(_settings.SelectedVoiceId);
+                }
+            }
         }
 
         private void ShowError(string title, string message)

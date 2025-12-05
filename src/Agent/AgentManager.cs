@@ -584,14 +584,18 @@ namespace MSAgentAI.Agent
         }
 
         /// <summary>
-        /// Makes the character speak the specified text
+        /// Makes the character speak the specified text with speed/pitch/volume tags
         /// </summary>
         public void Speak(string text)
         {
             EnsureLoaded();
             if (!string.IsNullOrEmpty(text))
             {
-                _character.Speak(text, null);
+                // Prepend SAPI4 tags for speed/pitch/volume if set
+                string speechTags = BuildSpeechTags();
+                string fullText = speechTags + text;
+                
+                _character.Speak(fullText, null);
             }
         }
 
@@ -755,7 +759,104 @@ namespace MSAgentAI.Agent
             EnsureLoaded();
             if (!string.IsNullOrEmpty(modeID))
             {
-                _character.TTSModeID = modeID;
+                try
+                {
+                    _character.TTSModeID = modeID;
+                    Logger.Log($"Set TTSModeID to: {modeID}");
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError($"Failed to set TTSModeID to {modeID}", ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Speed value for TTS (85-400, default 150)
+        /// </summary>
+        public int SpeechSpeed { get; set; } = 150;
+
+        /// <summary>
+        /// Pitch value for TTS (50-400, default 150)
+        /// </summary>
+        public int SpeechPitch { get; set; } = 150;
+
+        /// <summary>
+        /// Volume value for TTS (0-65535, default 65535)
+        /// </summary>
+        public int SpeechVolume { get; set; } = 65535;
+
+        /// <summary>
+        /// Sets the speech speed for the character (adds Spd tag to speech)
+        /// Range: 85-400, where 150 is normal
+        /// </summary>
+        public void SetSpeechSpeed(int speed)
+        {
+            SpeechSpeed = Math.Max(85, Math.Min(400, speed));
+            Logger.Log($"Set speech speed to: {SpeechSpeed}");
+        }
+
+        /// <summary>
+        /// Sets the speech pitch for the character (adds Pit tag to speech)
+        /// Range: 50-400, where 150 is normal
+        /// </summary>
+        public void SetSpeechPitch(int pitch)
+        {
+            SpeechPitch = Math.Max(50, Math.Min(400, pitch));
+            Logger.Log($"Set speech pitch to: {SpeechPitch}");
+        }
+
+        /// <summary>
+        /// Sets the speech volume for the character (adds Vol tag to speech)
+        /// Range: 0-65535
+        /// </summary>
+        public void SetSpeechVolume(int volume)
+        {
+            SpeechVolume = Math.Max(0, Math.Min(65535, volume));
+            Logger.Log($"Set speech volume to: {SpeechVolume}");
+        }
+
+        /// <summary>
+        /// Builds SAPI4 tags for speed, pitch and volume
+        /// </summary>
+        private string BuildSpeechTags()
+        {
+            var tags = "";
+            
+            // Speed tag: \Spd=XXX\
+            if (SpeechSpeed != 150)
+            {
+                tags += $"\\Spd={SpeechSpeed}\\";
+            }
+            
+            // Pitch tag: \Pit=XXX\
+            if (SpeechPitch != 150)
+            {
+                tags += $"\\Pit={SpeechPitch}\\";
+            }
+            
+            // Volume tag: \Vol=XXXXX\
+            if (SpeechVolume != 65535)
+            {
+                tags += $"\\Vol={SpeechVolume}\\";
+            }
+            
+            return tags;
+        }
+
+        /// <summary>
+        /// Makes the character speak the specified text with current TTS settings
+        /// </summary>
+        public void SpeakWithSettings(string text)
+        {
+            EnsureLoaded();
+            if (!string.IsNullOrEmpty(text))
+            {
+                // Prepend SAPI4 tags for speed/pitch/volume
+                string speechTags = BuildSpeechTags();
+                string fullText = speechTags + text;
+                
+                _character.Speak(fullText, null);
             }
         }
 
