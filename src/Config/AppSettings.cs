@@ -211,29 +211,29 @@ namespace MSAgentAI.Config
             if (string.IsNullOrEmpty(text))
                 return text;
 
-            // Apply pronunciation dictionary - directly replace words with pronunciation
-            // This ensures ALL occurrences are pronounced correctly
+            // Apply pronunciation dictionary using \map\ command for EACH occurrence
+            // Format: \map="pronunciation"="word"\ inserted before each word instance
             foreach (var entry in PronunciationDictionary)
             {
                 if (!string.IsNullOrEmpty(entry.Key) && !string.IsNullOrEmpty(entry.Value))
                 {
-                    // Replace all occurrences (case-insensitive)
+                    // Insert \map\ command before each occurrence of the word
+                    string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
                     text = System.Text.RegularExpressions.Regex.Replace(
-                        text, 
-                        System.Text.RegularExpressions.Regex.Escape(entry.Key), 
-                        entry.Value, 
+                        text,
+                        $"({System.Text.RegularExpressions.Regex.Escape(entry.Key)})",
+                        mapCommand + "$1",
                         System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                 }
             }
 
-            // Replace ## with user name (using pronunciation if set)
-            if (text.Contains("##"))
+            // Replace ## with user name, inserting \map\ command before each occurrence
+            if (text.Contains("##") && !string.IsNullOrWhiteSpace(UserName))
             {
-                // Use pronunciation if available, otherwise display name
-                string nameToSpeak = !string.IsNullOrWhiteSpace(UserNamePronunciation) 
-                    ? UserNamePronunciation 
-                    : UserName;
-                text = text.Replace("##", nameToSpeak);
+                string nameMapCommand = !string.IsNullOrWhiteSpace(UserNamePronunciation)
+                    ? $"\\map=\"{UserNamePronunciation}\"=\"{UserName}\"\\"
+                    : "";
+                text = text.Replace("##", nameMapCommand + UserName);
             }
 
             // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)
@@ -241,17 +241,11 @@ namespace MSAgentAI.Config
             text = text.Replace("/emp/", "\\Emp\\");
             text = text.Replace("\\emp\\", "\\Emp\\"); // Normalize existing ones
             
-            // Handle whisper tags - convert [whisper] or *whisper* to \chr="Whisper"\
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"\[whisper\]", "\\chr=\"Whisper\"\\", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"\[/whisper\]", "\\chr=\"Normal\"\\", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            
             // Also support other SAPI4 tags
             // \Pau=N\ - pause for N milliseconds
             // \Vol=N\ - set volume (0-65535)
             // \Spd=N\ - set speed
             // \Pit=N\ - set pitch
-            // \chr="Whisper"\ - switch to whisper mode
-            // \chr="Normal"\ - switch back to normal
 
             return text;
         }
