@@ -427,12 +427,23 @@ namespace MSAgentAI.UI
 
         private void OnIdleTimerTick(object sender, EventArgs e)
         {
-            if (_agentManager?.IsLoaded == true && _random.Next(100) < IdleDialogChancePercent)
+            // Only use prewritten idle if enabled
+            if (_agentManager?.IsLoaded == true && _settings.EnablePrewrittenIdle)
             {
-                var idleLine = _settings.GetProcessedRandomLine(_settings.IdleLines);
-                if (!string.IsNullOrEmpty(idleLine))
+                // 1 in N chance (configurable)
+                if (_random.Next(_settings.PrewrittenIdleChance) == 0)
                 {
-                    _agentManager.Speak(idleLine);
+                    var idleLine = _settings.GetProcessedRandomLine(_settings.IdleLines);
+                    if (!string.IsNullOrEmpty(idleLine))
+                    {
+                        // Extract and play any animation triggers
+                        var (text, animations) = AppSettings.ExtractAnimationTriggers(idleLine);
+                        foreach (var anim in animations)
+                        {
+                            _agentManager.PlayAnimation(anim);
+                        }
+                        _agentManager.Speak(text);
+                    }
                 }
             }
         }
@@ -453,7 +464,15 @@ namespace MSAgentAI.UI
                         var response = await _ollamaClient.GenerateRandomDialogAsync(prompt, _cancellationTokenSource.Token);
                         if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
                         {
-                            _agentManager.Speak(response);
+                            // Extract animations from AI response
+                            var (text, animations) = OllamaClient.ExtractAnimations(response);
+                            foreach (var anim in animations)
+                            {
+                                _agentManager.PlayAnimation(anim);
+                            }
+                            // Process text for ## replacement and /emp/ conversion
+                            text = _settings.ProcessText(text);
+                            _agentManager.Speak(text);
                         }
                     }
                 }
@@ -471,8 +490,17 @@ namespace MSAgentAI.UI
                 var clickedLine = _settings.GetProcessedRandomLine(_settings.ClickedLines);
                 if (!string.IsNullOrEmpty(clickedLine))
                 {
-                    _agentManager.PlayAnimation("Surprised");
-                    _agentManager.Speak(clickedLine);
+                    // Extract and play any animation triggers
+                    var (text, animations) = AppSettings.ExtractAnimationTriggers(clickedLine);
+                    if (animations.Count == 0)
+                    {
+                        _agentManager.PlayAnimation("Surprised");
+                    }
+                    foreach (var anim in animations)
+                    {
+                        _agentManager.PlayAnimation(anim);
+                    }
+                    _agentManager.Speak(text);
                 }
             }
         }
@@ -484,7 +512,13 @@ namespace MSAgentAI.UI
                 var movedLine = _settings.GetProcessedRandomLine(_settings.MovedLines);
                 if (!string.IsNullOrEmpty(movedLine))
                 {
-                    _agentManager.Speak(movedLine);
+                    // Extract and play any animation triggers
+                    var (text, animations) = AppSettings.ExtractAnimationTriggers(movedLine);
+                    foreach (var anim in animations)
+                    {
+                        _agentManager.PlayAnimation(anim);
+                    }
+                    _agentManager.Speak(text);
                 }
             }
         }
@@ -512,6 +546,12 @@ namespace MSAgentAI.UI
                 _ollamaClient.BaseUrl = _settings.OllamaUrl;
                 _ollamaClient.Model = _settings.OllamaModel;
                 _ollamaClient.PersonalityPrompt = _settings.PersonalityPrompt;
+                
+                // Update available animations for AI to use
+                if (_agentManager?.IsLoaded == true)
+                {
+                    _ollamaClient.AvailableAnimations = _agentManager.GetAnimations();
+                }
             }
 
             // Update random dialog timer

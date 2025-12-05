@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -22,14 +23,27 @@ namespace MSAgentAI.AI
         public string PersonalityPrompt { get; set; } = "";
         public int MaxTokens { get; set; } = 150;
         public double Temperature { get; set; } = 0.8;
+        
+        // Available animations for AI to use
+        public List<string> AvailableAnimations { get; set; } = new List<string>();
 
         private List<ChatMessage> _conversationHistory = new List<ChatMessage>();
+
+        // Enforced system prompt additions
+        private const string ENFORCED_RULES = @"
+IMPORTANT RULES YOU MUST FOLLOW:
+1. NEVER use em dashes (—), asterisks (*), or emojis in your responses.
+2. Use /emp/ before words you want to emphasize (e.g., 'This is /emp/very important').
+3. You can trigger animations by including &&AnimationName in your response (e.g., '&&Surprised Oh wow!').
+4. Keep responses short and conversational (1-3 sentences).
+5. Speak naturally as a desktop companion character.
+";
 
         public OllamaClient()
         {
             _httpClient = new HttpClient
             {
-                Timeout = TimeSpan.FromSeconds(60)
+                Timeout = TimeSpan.FromSeconds(120)
             };
         }
 
@@ -67,7 +81,12 @@ namespace MSAgentAI.AI
                     {
                         foreach (var model in result.Models)
                         {
-                            models.Add(model.Name);
+                            // Only add the base model name (before the colon for versions)
+                            string modelName = model.Name;
+                            if (!string.IsNullOrEmpty(modelName))
+                            {
+                                models.Add(modelName);
+                            }
                         }
                     }
                 }
@@ -75,6 +94,75 @@ namespace MSAgentAI.AI
             catch { }
 
             return models;
+        }
+
+        /// <summary>
+        /// Builds the full system prompt with personality and rules
+        /// </summary>
+        private string BuildSystemPrompt()
+        {
+            var prompt = new StringBuilder();
+            
+            if (!string.IsNullOrEmpty(PersonalityPrompt))
+            {
+                prompt.AppendLine(PersonalityPrompt);
+                prompt.AppendLine();
+            }
+            
+            prompt.AppendLine(ENFORCED_RULES);
+            
+            if (AvailableAnimations.Count > 0)
+            {
+                prompt.AppendLine();
+                prompt.AppendLine("Available animations you can use with && prefix: " + string.Join(", ", AvailableAnimations.GetRange(0, Math.Min(20, AvailableAnimations.Count))));
+            }
+            
+            return prompt.ToString();
+        }
+
+        /// <summary>
+        /// Cleans the AI response to remove forbidden characters
+        /// </summary>
+        public static string CleanResponse(string response)
+        {
+            if (string.IsNullOrEmpty(response))
+                return response;
+
+            // Remove em dashes
+            response = response.Replace("—", "-");
+            response = response.Replace("–", "-");
+            
+            // Remove asterisks (but keep ** for bold if needed)
+            response = Regex.Replace(response, @"\*+", "");
+            
+            // Remove emojis (Unicode emoji ranges)
+            response = Regex.Replace(response, @"[\u2600-\u26FF\u2700-\u27BF\uD83C-\uDBFF\uDC00-\uDFFF]+", "");
+            
+            // Clean up extra whitespace
+            response = Regex.Replace(response, @"\s+", " ").Trim();
+            
+            return response;
+        }
+
+        /// <summary>
+        /// Extracts animation triggers from text (&&AnimationName)
+        /// </summary>
+        public static (string text, List<string> animations) ExtractAnimations(string text)
+        {
+            var animations = new List<string>();
+            if (string.IsNullOrEmpty(text))
+                return (text, animations);
+
+            var matches = Regex.Matches(text, @"&&(\w+)");
+            foreach (Match match in matches)
+            {
+                animations.Add(match.Groups[1].Value);
+            }
+
+            // Remove animation triggers from text
+            text = Regex.Replace(text, @"&&\w+\s*", "").Trim();
+            
+            return (text, animations);
         }
 
         /// <summary>
@@ -87,10 +175,11 @@ namespace MSAgentAI.AI
                 // Build the messages list with personality and history
                 var messages = new List<object>();
 
-                // Add system message with personality if set
-                if (!string.IsNullOrEmpty(PersonalityPrompt))
+                // Add system message with personality and rules
+                string systemPrompt = BuildSystemPrompt();
+                if (!string.IsNullOrEmpty(systemPrompt))
                 {
-                    messages.Add(new { role = "system", content = PersonalityPrompt });
+                    messages.Add(new { role = "system", content = systemPrompt });
                 }
 
                 // Add conversation history (limit to last 10 messages)
@@ -131,12 +220,19 @@ namespace MSAgentAI.AI
 
                     if (result?.Message?.Content != null)
                     {
+                        string cleanedResponse = CleanResponse(result.Message.Content);
+                        
                         // Add to conversation history
                         _conversationHistory.Add(new ChatMessage { Role = "user", Content = message });
-                        _conversationHistory.Add(new ChatMessage { Role = "assistant", Content = result.Message.Content });
+                        _conversationHistory.Add(new ChatMessage { Role = "assistant", Content = cleanedResponse });
 
-                        return result.Message.Content;
+                        return cleanedResponse;
                     }
+                }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    System.Diagnostics.Debug.WriteLine($"Ollama error: {response.StatusCode} - {errorContent}");
                 }
 
                 return null;
@@ -153,20 +249,21 @@ namespace MSAgentAI.AI
         }
 
         /// <summary>
-        /// Generates a random unhinged statement using Ollama
+        /// Generates a random dialog using Ollama
         /// </summary>
         public async Task<string> GenerateRandomDialogAsync(string customPrompt = null, CancellationToken cancellationToken = default)
         {
-            string prompt = customPrompt ?? "Say something genuinely unhinged, weird, or unexpectedly philosophical. Keep it short (1-2 sentences max). Be creative and surprising.";
+            string prompt = customPrompt ?? "Say something short, interesting, and in-character. Use /emp/ for emphasis and optionally include an &&animation trigger.";
 
             try
             {
                 var messages = new List<object>();
 
-                // Add personality context if available
-                if (!string.IsNullOrEmpty(PersonalityPrompt))
+                // Add system prompt with personality and rules
+                string systemPrompt = BuildSystemPrompt();
+                if (!string.IsNullOrEmpty(systemPrompt))
                 {
-                    messages.Add(new { role = "system", content = PersonalityPrompt });
+                    messages.Add(new { role = "system", content = systemPrompt });
                 }
 
                 messages.Add(new { role = "user", content = prompt });
@@ -179,7 +276,7 @@ namespace MSAgentAI.AI
                     options = new
                     {
                         num_predict = 100,
-                        temperature = 1.2 // Higher temperature for more randomness
+                        temperature = 1.0
                     }
                 };
 
@@ -192,7 +289,7 @@ namespace MSAgentAI.AI
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<OllamaChatResponse>(responseContent);
-                    return result?.Message?.Content;
+                    return CleanResponse(result?.Message?.Content);
                 }
 
                 return null;

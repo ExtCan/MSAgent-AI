@@ -45,6 +45,7 @@ namespace MSAgentAI.UI
         // Name system controls
         private TextBox _userNameTextBox;
         private TextBox _userNamePronunciationTextBox;
+        private Button _testNameButton;
 
         // Voice controls
         private ComboBox _voiceComboBox;
@@ -67,6 +68,8 @@ namespace MSAgentAI.UI
         private CheckBox _enableChatCheckBox;
         private CheckBox _enableRandomDialogCheckBox;
         private NumericUpDown _randomChanceNumeric;
+        private CheckBox _enablePrewrittenIdleCheckBox;
+        private NumericUpDown _prewrittenIdleChanceNumeric;
 
         // Lines controls
         private TabControl _linesTabControl;
@@ -200,14 +203,22 @@ namespace MSAgentAI.UI
             _userNamePronunciationTextBox = new TextBox
             {
                 Location = new Point(365, 47),
-                Size = new Size(135, 23)
+                Size = new Size(90, 23)
             };
+
+            _testNameButton = new Button
+            {
+                Text = "Test",
+                Location = new Point(460, 46),
+                Size = new Size(50, 25)
+            };
+            _testNameButton.Click += OnTestNameClick;
 
             var nameHintLabel = new Label
             {
-                Text = "Use ## in lines to insert your name",
+                Text = "Use ## in lines to insert your name. Use &&Animation for animations.",
                 Location = new Point(120, 72),
-                Size = new Size(250, 15),
+                Size = new Size(400, 15),
                 ForeColor = Color.Gray,
                 Font = new Font(this.Font.FontFamily, 7.5f)
             };
@@ -278,7 +289,7 @@ namespace MSAgentAI.UI
             // Emphasis hint
             var empHintLabel = new Label
             {
-                Text = "TIP: Use \\emp\\ in text for emphasis",
+                Text = "TIP: Use /emp/ in text for emphasis",
                 Location = new Point(405, 112),
                 Size = new Size(190, 40),
                 ForeColor = Color.Gray,
@@ -288,7 +299,7 @@ namespace MSAgentAI.UI
             _agentTab.Controls.AddRange(new Control[]
             {
                 pathLabel, _characterPathTextBox, _browsePathButton, refreshButton,
-                nameLabel, _userNameTextBox, pronunciationLabel, _userNamePronunciationTextBox, nameHintLabel,
+                nameLabel, _userNameTextBox, pronunciationLabel, _userNamePronunciationTextBox, _testNameButton, nameHintLabel,
                 listLabel, _characterListBox, _previewButton, _selectButton, _characterInfoLabel,
                 animLabel, _animationsListBox, _playAnimationButton, empHintLabel
             });
@@ -529,11 +540,34 @@ namespace MSAgentAI.UI
                 Value = 9000
             };
 
+            _enablePrewrittenIdleCheckBox = new CheckBox
+            {
+                Text = "Enable Pre-written Idle Lines",
+                Location = new Point(15, 345),
+                Size = new Size(220, 25)
+            };
+
+            var prewrittenChanceLabel = new Label
+            {
+                Text = "Idle Chance (1 in N):",
+                Location = new Point(240, 348),
+                Size = new Size(130, 20)
+            };
+
+            _prewrittenIdleChanceNumeric = new NumericUpDown
+            {
+                Location = new Point(370, 345),
+                Size = new Size(80, 23),
+                Minimum = 1,
+                Maximum = 1000,
+                Value = 30
+            };
+
             var promptsLabel = new Label
             {
-                Text = "Edit random dialog prompts in the 'Lines' tab.",
-                Location = new Point(15, 350),
-                Size = new Size(300, 20),
+                Text = "Edit random dialog prompts in the 'Lines' tab. AI uses /emp/ for emphasis and &&Animation for animations.",
+                Location = new Point(15, 380),
+                Size = new Size(580, 20),
                 ForeColor = Color.Gray
             };
 
@@ -544,7 +578,9 @@ namespace MSAgentAI.UI
                 presetLabel, _personalityPresetComboBox, _applyPresetButton,
                 personalityLabel, _personalityTextBox,
                 _enableChatCheckBox, _enableRandomDialogCheckBox,
-                chanceLabel, _randomChanceNumeric, promptsLabel
+                chanceLabel, _randomChanceNumeric,
+                _enablePrewrittenIdleCheckBox, prewrittenChanceLabel, _prewrittenIdleChanceNumeric,
+                promptsLabel
             });
         }
 
@@ -628,6 +664,9 @@ namespace MSAgentAI.UI
             _enableRandomDialogCheckBox.Checked = _settings.EnableRandomDialog;
             _randomChanceNumeric.Value = Math.Max(_randomChanceNumeric.Minimum, 
                 Math.Min(_randomChanceNumeric.Maximum, _settings.RandomDialogChance));
+            _enablePrewrittenIdleCheckBox.Checked = _settings.EnablePrewrittenIdle;
+            _prewrittenIdleChanceNumeric.Value = Math.Max(_prewrittenIdleChanceNumeric.Minimum,
+                Math.Min(_prewrittenIdleChanceNumeric.Maximum, _settings.PrewrittenIdleChance));
 
             // Lines
             _linesTextBoxes["welcomeLines"].Text = string.Join(Environment.NewLine, _settings.WelcomeLines);
@@ -667,6 +706,8 @@ namespace MSAgentAI.UI
             _settings.EnableOllamaChat = _enableChatCheckBox.Checked;
             _settings.EnableRandomDialog = _enableRandomDialogCheckBox.Checked;
             _settings.RandomDialogChance = (int)_randomChanceNumeric.Value;
+            _settings.EnablePrewrittenIdle = _enablePrewrittenIdleCheckBox.Checked;
+            _settings.PrewrittenIdleChance = (int)_prewrittenIdleChanceNumeric.Value;
 
             // Lines
             _settings.WelcomeLines = ParseLines(_linesTextBoxes["welcomeLines"].Text);
@@ -808,6 +849,31 @@ namespace MSAgentAI.UI
             {
                 string animName = _animationsListBox.SelectedItem.ToString();
                 _agentManager.PlayAnimation(animName);
+            }
+        }
+
+        private void OnTestNameClick(object sender, EventArgs e)
+        {
+            if (_agentManager?.IsLoaded == true)
+            {
+                string pronunciation = _userNamePronunciationTextBox.Text;
+                if (string.IsNullOrEmpty(pronunciation))
+                {
+                    pronunciation = _userNameTextBox.Text;
+                }
+                if (!string.IsNullOrEmpty(pronunciation))
+                {
+                    _agentManager.Speak($"Hello, {pronunciation}!");
+                }
+                else
+                {
+                    MessageBox.Show("Please enter a name first.", "Name Required", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                MessageBox.Show("Please load an agent first to test the name.", "No Agent",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
             }
         }
 

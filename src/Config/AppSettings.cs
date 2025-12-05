@@ -33,6 +33,8 @@ namespace MSAgentAI.Config
         // Random dialog settings
         public bool EnableRandomDialog { get; set; } = true;
         public int RandomDialogChance { get; set; } = 9000; // 1 in 9000 chance per second
+        public bool EnablePrewrittenIdle { get; set; } = true;
+        public int PrewrittenIdleChance { get; set; } = 30; // 1 in 30 idle ticks
         public List<string> RandomDialogPrompts { get; set; } = new List<string>
         {
             "Say something genuinely unhinged",
@@ -183,9 +185,31 @@ namespace MSAgentAI.Config
             // Replace ## with user name pronunciation
             text = text.Replace("##", UserNamePronunciation);
 
-            // The \emp\ tag is already supported by MS Agent's SAPI integration
-            // but ensure proper formatting
+            // Convert /emp/ to \emp\ for SAPI4
+            text = text.Replace("/emp/", "\\emp\\");
+
             return text;
+        }
+
+        /// <summary>
+        /// Extracts animation triggers (&&AnimationName) from text
+        /// </summary>
+        public static (string text, List<string> animations) ExtractAnimationTriggers(string text)
+        {
+            var animations = new List<string>();
+            if (string.IsNullOrEmpty(text))
+                return (text, animations);
+
+            var matches = System.Text.RegularExpressions.Regex.Matches(text, @"&&(\w+)");
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                animations.Add(match.Groups[1].Value);
+            }
+
+            // Remove animation triggers from text
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"&&\w+\s*", "").Trim();
+            
+            return (text, animations);
         }
 
         /// <summary>
