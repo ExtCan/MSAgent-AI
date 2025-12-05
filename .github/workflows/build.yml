@@ -1,0 +1,89 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+  build-executables:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build TypeScript
+        run: npm run build
+
+      - name: Build executables
+        run: npm run build:exe
+
+      - name: Upload Windows executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: msagent-windows-x64
+          path: bin/msagent-win.exe
+          retention-days: 30
+
+      - name: Upload Linux executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: msagent-linux-x64
+          path: bin/msagent-linux
+          retention-days: 30
+
+      - name: Upload macOS executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: msagent-macos-x64
+          path: bin/msagent-macos
+          retention-days: 30
+
+      - name: Upload all executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: msagent-all-platforms
+          path: bin/
+          retention-days: 30
