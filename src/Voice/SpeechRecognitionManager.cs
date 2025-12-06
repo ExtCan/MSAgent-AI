@@ -142,15 +142,36 @@ namespace MSAgentAI.Voice
         /// </summary>
         public void StartListening()
         {
-            if (_recognizer == null || _isListening) return;
+            if (_recognizer == null) 
+            {
+                Logger.Log("Cannot start listening - recognizer is null, reinitializing...");
+                InitializeRecognizer();
+                if (_recognizer == null)
+                {
+                    Logger.LogError("Failed to reinitialize recognizer", null);
+                    return;
+                }
+            }
+            
+            if (_isListening) 
+            {
+                Logger.Log("Already listening, ignoring StartListening call");
+                return;
+            }
 
             try
             {
-                Logger.Log("Starting speech recognition with improved detection...");
+                Logger.Log("Starting speech recognition...");
                 _currentUtterance = "";
                 _lastSpeechTime = DateTime.Now;
-                _isListening = true;
                 _speechInProgress = false;
+                
+                // Stop any previous timer
+                _silenceTimer?.Dispose();
+                _silenceTimer = null;
+
+                // Mark as listening BEFORE starting recognition
+                _isListening = true;
 
                 // Start continuous recognition
                 _recognizer.RecognizeAsync(RecognizeMode.Multiple);
@@ -173,33 +194,38 @@ namespace MSAgentAI.Voice
         /// </summary>
         public void StopListening()
         {
-            if (_recognizer == null || !_isListening) return;
-
-            try
+            Logger.Log($"StopListening called, _isListening={_isListening}");
+            
+            // Stop the timer first
+            _silenceTimer?.Dispose();
+            _silenceTimer = null;
+            
+            // If we have accumulated speech, process it before stopping
+            if (!string.IsNullOrWhiteSpace(_currentUtterance))
             {
-                Logger.Log("Stopping speech recognition...");
-                _isListening = false;
-
-                _silenceTimer?.Dispose();
-                _silenceTimer = null;
-
-                _recognizer.RecognizeAsyncStop();
-
-                // If we have accumulated speech, process it
-                if (!string.IsNullOrWhiteSpace(_currentUtterance))
+                var finalText = _currentUtterance.Trim();
+                _currentUtterance = "";
+                Logger.Log($"Processing accumulated speech before stopping: \"{finalText}\"");
+                OnSpeechRecognized?.Invoke(this, finalText);
+            }
+            
+            // Mark as not listening BEFORE stopping the recognizer
+            _isListening = false;
+            
+            if (_recognizer != null)
+            {
+                try
                 {
-                    var finalText = _currentUtterance.Trim();
-                    _currentUtterance = "";
-                    OnSpeechRecognized?.Invoke(this, finalText);
+                    _recognizer.RecognizeAsyncStop();
+                    Logger.Log("Speech recognition stopped");
                 }
+                catch (Exception ex)
+                {
+                    Logger.LogError("Error stopping speech recognition", ex);
+                }
+            }
 
-                OnListeningStopped?.Invoke(this, EventArgs.Empty);
-                Logger.Log("Speech recognition stopped");
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError("Failed to stop speech recognition", ex);
-            }
+            OnListeningStopped?.Invoke(this, EventArgs.Empty);
         }
 
         private void OnSpeechRecognizedInternal(object sender, SpeechRecognizedEventArgs e)

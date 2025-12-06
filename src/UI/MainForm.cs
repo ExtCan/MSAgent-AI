@@ -543,9 +543,10 @@ namespace MSAgentAI.UI
             if (!_inCallMode || string.IsNullOrWhiteSpace(spokenText))
                 return;
 
-            Logger.Log($"Call Mode - User said: {spokenText}");
+            Logger.Log($"Call Mode - User said: \"{spokenText}\"");
             
             // Stop listening while processing
+            Logger.Log("Call Mode - Stopping listening while AI responds...");
             _speechRecognition?.StopListening();
             
             try
@@ -555,20 +556,35 @@ namespace MSAgentAI.UI
                 
                 if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
                 {
-                    Logger.Log($"Call Mode - AI response: {response}");
+                    Logger.Log($"Call Mode - AI response: \"{response}\"");
                     
                     // Speak the response
                     SpeakWithAnimations(response);
                     
                     // Wait for speech to complete, then resume listening
-                    // Estimate speech duration based on text length (rough estimate: 100ms per character)
+                    // Estimate speech duration based on text length (rough estimate: 80ms per character)
                     int estimatedDuration = Math.Max(3000, response.Length * 80);
+                    Logger.Log($"Call Mode - Waiting {estimatedDuration}ms for TTS to complete...");
                     
                     await Task.Delay(estimatedDuration);
                     
                     // Resume listening if still in call mode
                     if (_inCallMode)
                     {
+                        Logger.Log("Call Mode - Resuming listening after AI response...");
+                        // Add a small buffer delay to ensure TTS is fully done
+                        await Task.Delay(500);
+                        _speechRecognition?.StartListening();
+                        Logger.Log("Call Mode - Listening resumed");
+                    }
+                }
+                else
+                {
+                    // No response or agent not loaded, resume listening
+                    if (_inCallMode)
+                    {
+                        Logger.Log("Call Mode - No response, resuming listening...");
+                        await Task.Delay(500);
                         _speechRecognition?.StartListening();
                     }
                 }
@@ -581,6 +597,7 @@ namespace MSAgentAI.UI
                 if (_inCallMode)
                 {
                     await Task.Delay(1000);
+                    Logger.Log("Call Mode - Resuming listening after error...");
                     _speechRecognition?.StartListening();
                 }
             }
