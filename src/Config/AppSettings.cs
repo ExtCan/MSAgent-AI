@@ -56,6 +56,19 @@ namespace MSAgentAI.Config
         // Custom presets storage
         public Dictionary<string, string> CustomPersonalityPresets { get; set; } = new Dictionary<string, string>();
 
+        // Pronunciation Dictionary (Word -> Pronunciation)
+        public Dictionary<string, string> PronunciationDictionary { get; set; } = new Dictionary<string, string>
+        {
+            // Common mispronounced words as defaults
+            { "AI", "Ay Eye" },
+            { "API", "Ay Pee Eye" },
+            { "GUI", "Gooey" },
+            { "SAPI", "Sappy" },
+            { "TTS", "Text to Speech" },
+            { "Ollama", "Oh Lama" },
+            { "BonziBUDDY", "Bonzee Buddy" }
+        };
+
         // Custom lines
         public List<string> WelcomeLines { get; set; } = new List<string>
         {
@@ -192,7 +205,8 @@ namespace MSAgentAI.Config
         }
 
         /// <summary>
-        /// Processes text to replace ## with the user's name pronunciation
+        /// Processes text to replace ## with the user's name pronunciation,
+        /// apply pronunciation dictionary mappings using \map\ SAPI4 command,
         /// and handle \emp\ emphasis tags for SAPI4
         /// Uses the CyberBuddy approach for proper SAPI4 tags
         /// </summary>
@@ -209,6 +223,28 @@ namespace MSAgentAI.Config
                     ? UserNamePronunciation
                     : UserName;
                 text = text.Replace("##", nameToSpeak);
+            }
+
+            // Apply pronunciation dictionary using \map\ SAPI4 command
+            // Format: \map="pronunciation"="word"\
+            if (PronunciationDictionary != null && PronunciationDictionary.Count > 0)
+            {
+                foreach (var entry in PronunciationDictionary)
+                {
+                    if (!string.IsNullOrEmpty(entry.Key) && !string.IsNullOrEmpty(entry.Value))
+                    {
+                        // Replace all occurrences of the word with the \map\ command
+                        // The \map\ command tells SAPI4 to pronounce the word differently
+                        string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
+                        
+                        // Use case-insensitive replacement
+                        text = System.Text.RegularExpressions.Regex.Replace(
+                            text, 
+                            System.Text.RegularExpressions.Regex.Escape(entry.Key), 
+                            mapCommand + entry.Key, 
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    }
+                }
             }
 
             // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)

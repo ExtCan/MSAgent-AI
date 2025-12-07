@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Linq;
 using MSAgentAI.Agent;
 using MSAgentAI.AI;
 using MSAgentAI.Config;
@@ -29,6 +30,7 @@ namespace MSAgentAI.UI
         private TabControl _tabControl;
         private TabPage _agentTab;
         private TabPage _voiceTab;
+        private TabPage _pronunciationTab;
         private TabPage _ollamaTab;
         private TabPage _linesTab;
 
@@ -89,6 +91,11 @@ namespace MSAgentAI.UI
         // Lines controls
         private TabControl _linesTabControl;
         private Dictionary<string, TextBox> _linesTextBoxes;
+
+        // Pronunciation dictionary controls
+        private DataGridView _pronunciationGrid;
+        private Button _exportDictionaryButton;
+        private Button _importDictionaryButton;
 
         // Dialog buttons
         private Button _okButton;
@@ -177,10 +184,11 @@ namespace MSAgentAI.UI
             // Create tabs
             CreateAgentTab();
             CreateVoiceTab();
+            CreatePronunciationTab();
             CreateOllamaTab();
             CreateLinesTab();
 
-            _tabControl.TabPages.AddRange(new TabPage[] { _agentTab, _voiceTab, _ollamaTab, _linesTab });
+            _tabControl.TabPages.AddRange(new TabPage[] { _agentTab, _voiceTab, _pronunciationTab, _ollamaTab, _linesTab });
 
             // Dialog buttons
             _okButton = new Button
@@ -613,6 +621,204 @@ namespace MSAgentAI.UI
             });
         }
 
+        private void CreatePronunciationTab()
+        {
+            _pronunciationTab = new TabPage("Pronunciation");
+
+            var infoLabel = new Label
+            {
+                Text = "Pronunciation Dictionary - Words will be pronounced using the \\map\\ SAPI4 command.\nWhen the AI or any text contains a matching word, it will be pronounced as specified.",
+                Location = new Point(15, 15),
+                Size = new Size(580, 35)
+            };
+
+            var gridLabel = new Label
+            {
+                Text = "Word → Pronunciation mappings:",
+                Location = new Point(15, 55),
+                Size = new Size(250, 20)
+            };
+
+            _pronunciationGrid = new DataGridView
+            {
+                Location = new Point(15, 80),
+                Size = new Size(580, 280),
+                AllowUserToAddRows = true,
+                AllowUserToDeleteRows = true,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false
+            };
+
+            // Add columns
+            var wordColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "Word",
+                HeaderText = "Word",
+                FillWeight = 50
+            };
+            var pronunciationColumn = new DataGridViewTextBoxColumn
+            {
+                Name = "Pronunciation",
+                HeaderText = "Pronunciation",
+                FillWeight = 50
+            };
+            _pronunciationGrid.Columns.Add(wordColumn);
+            _pronunciationGrid.Columns.Add(pronunciationColumn);
+
+            _exportDictionaryButton = new Button
+            {
+                Text = "Export XML...",
+                Location = new Point(15, 370),
+                Size = new Size(100, 30)
+            };
+            _exportDictionaryButton.Click += OnExportDictionaryClick;
+
+            _importDictionaryButton = new Button
+            {
+                Text = "Import XML...",
+                Location = new Point(125, 370),
+                Size = new Size(100, 30)
+            };
+            _importDictionaryButton.Click += OnImportDictionaryClick;
+
+            var hintLabel = new Label
+            {
+                Text = "Export/Import allows sharing pronunciation dictionaries as XML files.",
+                Location = new Point(235, 377),
+                Size = new Size(360, 20),
+                ForeColor = Color.Gray,
+                Font = new Font(this.Font.FontFamily, 7.5f)
+            };
+
+            _pronunciationTab.Controls.AddRange(new Control[]
+            {
+                infoLabel, gridLabel, _pronunciationGrid, 
+                _exportDictionaryButton, _importDictionaryButton, hintLabel
+            });
+        }
+
+        private void OnExportDictionaryClick(object sender, EventArgs e)
+        {
+            using (var dialog = new SaveFileDialog())
+            {
+                dialog.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*";
+                dialog.DefaultExt = "xml";
+                dialog.FileName = "pronunciation_dictionary.xml";
+                dialog.Title = "Export Pronunciation Dictionary";
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        var entries = new List<KeyValuePair<string, string>>();
+                        foreach (DataGridViewRow row in _pronunciationGrid.Rows)
+                        {
+                            if (row.IsNewRow) continue;
+                            var word = row.Cells["Word"].Value?.ToString();
+                            var pronunciation = row.Cells["Pronunciation"].Value?.ToString();
+                            if (!string.IsNullOrEmpty(word) && !string.IsNullOrEmpty(pronunciation))
+                            {
+                                entries.Add(new KeyValuePair<string, string>(word, pronunciation));
+                            }
+                        }
+
+                        var xml = new XDocument(
+                            new XDeclaration("1.0", "utf-8", "yes"),
+                            new XElement("PronunciationDictionary",
+                                entries.Select(e => new XElement("Entry",
+                                    new XElement("Word", e.Key),
+                                    new XElement("Pronunciation", e.Value)
+                                ))
+                            )
+                        );
+
+                        xml.Save(dialog.FileName);
+                        MessageBox.Show($"Dictionary exported successfully!\n{entries.Count} entries saved.", 
+                            "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to export dictionary: {ex.Message}", 
+                            "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void OnImportDictionaryClick(object sender, EventArgs e)
+        {
+            using (var dialog = new OpenFileDialog())
+            {
+                dialog.Filter = "XML Files (*.xml)|*.xml|All Files (*.*)|*.*";
+                dialog.Title = "Import Pronunciation Dictionary";
+
+                if (dialog.ShowDialog() == DialogResult.OK)
+                {
+                    try
+                    {
+                        var xml = XDocument.Load(dialog.FileName);
+                        var entries = xml.Root?.Elements("Entry")
+                            .Select(e => new
+                            {
+                                Word = e.Element("Word")?.Value,
+                                Pronunciation = e.Element("Pronunciation")?.Value
+                            })
+                            .Where(e => !string.IsNullOrEmpty(e.Word) && !string.IsNullOrEmpty(e.Pronunciation))
+                            .ToList();
+
+                        if (entries == null || entries.Count == 0)
+                        {
+                            MessageBox.Show("No valid entries found in the XML file.", 
+                                "Import Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Ask user if they want to replace or merge
+                        var result = MessageBox.Show(
+                            $"Found {entries.Count} entries.\n\nReplace existing dictionary?\n(Yes = Replace, No = Merge)",
+                            "Import Dictionary", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+                        if (result == DialogResult.Cancel) return;
+
+                        if (result == DialogResult.Yes)
+                        {
+                            _pronunciationGrid.Rows.Clear();
+                        }
+
+                        foreach (var entry in entries)
+                        {
+                            // Check if word already exists (for merge)
+                            bool exists = false;
+                            foreach (DataGridViewRow row in _pronunciationGrid.Rows)
+                            {
+                                if (row.IsNewRow) continue;
+                                if (row.Cells["Word"].Value?.ToString()?.Equals(entry.Word, StringComparison.OrdinalIgnoreCase) == true)
+                                {
+                                    row.Cells["Pronunciation"].Value = entry.Pronunciation;
+                                    exists = true;
+                                    break;
+                                }
+                            }
+                            if (!exists)
+                            {
+                                _pronunciationGrid.Rows.Add(entry.Word, entry.Pronunciation);
+                            }
+                        }
+
+                        MessageBox.Show($"Dictionary imported successfully!\n{entries.Count} entries loaded.", 
+                            "Import Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to import dictionary: {ex.Message}", 
+                            "Import Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
         private void CreateOllamaTab()
         {
             _ollamaTab = new TabPage("Ollama AI");
@@ -909,6 +1115,16 @@ namespace MSAgentAI.UI
             else
                 _themeComboBox.SelectedIndex = 0;
 
+            // Pronunciation Dictionary
+            _pronunciationGrid.Rows.Clear();
+            if (_settings.PronunciationDictionary != null)
+            {
+                foreach (var entry in _settings.PronunciationDictionary)
+                {
+                    _pronunciationGrid.Rows.Add(entry.Key, entry.Value);
+                }
+            }
+
             // Lines
             _linesTextBoxes["welcomeLines"].Text = string.Join(Environment.NewLine, _settings.WelcomeLines);
             _linesTextBoxes["idleLines"].Text = string.Join(Environment.NewLine, _settings.IdleLines);
@@ -959,6 +1175,19 @@ namespace MSAgentAI.UI
 
             // Theme
             _settings.UITheme = _themeComboBox.SelectedItem?.ToString() ?? "Default";
+
+            // Pronunciation Dictionary
+            _settings.PronunciationDictionary = new Dictionary<string, string>();
+            foreach (DataGridViewRow row in _pronunciationGrid.Rows)
+            {
+                if (row.IsNewRow) continue;
+                var word = row.Cells["Word"].Value?.ToString();
+                var pronunciation = row.Cells["Pronunciation"].Value?.ToString();
+                if (!string.IsNullOrEmpty(word) && !string.IsNullOrEmpty(pronunciation))
+                {
+                    _settings.PronunciationDictionary[word] = pronunciation;
+                }
+            }
 
             // Lines
             _settings.WelcomeLines = ParseLines(_linesTextBoxes["welcomeLines"].Text);
