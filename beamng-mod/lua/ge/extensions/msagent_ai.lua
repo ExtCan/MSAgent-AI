@@ -8,6 +8,10 @@ local serverUrl = "http://localhost:5000"
 local updateInterval = 2.0  -- seconds between environment updates
 local damageThreshold = 0.01  -- minimum damage to trigger commentary
 
+-- Crash detection parameters
+local crashSpeedDelta = 30  -- minimum speed loss (km/h) to detect crash
+local crashEndSpeed = 10  -- maximum final speed (km/h) after crash
+
 -- State tracking
 local lastUpdate = 0
 local lastDamage = 0
@@ -121,7 +125,7 @@ local function checkForCrash(env)
   previousSpeed = env.speed
   
   -- Detect sudden deceleration (crash)
-  if speedDelta > 30 and env.speed < 10 then  -- Lost 30+ km/h and now moving slowly
+  if speedDelta > crashSpeedDelta and env.speed < crashEndSpeed then
     return true
   end
   
