@@ -225,9 +225,9 @@ namespace MSAgentAI.Config
                 text = text.Replace("##", nameToSpeak);
             }
 
-            // Apply pronunciation dictionary using \map\ command BEFORE each word instance
-            // The \map\ command tells SAPI4 how to pronounce the following word
-            // Format: \map="Pronunciation"="Word"\ placed before each word occurrence
+            // Apply pronunciation dictionary using \map\ command that REPLACES each word
+            // The \map\ command format: \map="Pronunciation"="Word"\
+            // This command REPLACES the word in speech output
             if (PronunciationDictionary != null && PronunciationDictionary.Count > 0)
             {
                 foreach (var entry in PronunciationDictionary)
@@ -238,16 +238,12 @@ namespace MSAgentAI.Config
                         // This prevents "AI" from matching inside "Entertaining"
                         string pattern = @"\b" + System.Text.RegularExpressions.Regex.Escape(entry.Key) + @"\b";
                         
-                        // Build the \map\ command that goes before EACH word occurrence
-                        // The word stays in the text, but with the map command before it
-                        string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
-                        string replacement = mapCommand + entry.Key;
-                        
-                        // Replace ALL occurrences (case-insensitive) - prepend \map\ before each word
+                        // The \map\ command REPLACES the word with the pronunciation
+                        // Format: \map="anim-ay"="anime"\ (replaces the word entirely)
                         text = System.Text.RegularExpressions.Regex.Replace(
                             text, 
                             pattern, 
-                            replacement, 
+                            match => $"\\map=\"{entry.Value}\"=\"{match.Value}\"\\",
                             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                     }
                 }
