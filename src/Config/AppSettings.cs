@@ -249,10 +249,10 @@ namespace MSAgentAI.Config
                 }
             }
 
-            // Convert /emp/ to \Emp\ for SAPI4 (CyberBuddy format)
-            // SAPI4 uses backslash escape sequences like \Emp\ for emphasis
-            text = text.Replace("/emp/", "\\Emp\\");
-            text = text.Replace("\\emp\\", "\\Emp\\"); // Normalize existing ones
+            // Convert /emp/ to \emp\ for SAPI4 emphasis (lowercase)
+            // SAPI4 uses backslash escape sequences like \emp\ for emphasis
+            text = text.Replace("/emp/", "\\emp\\");
+            text = text.Replace("\\Emp\\", "\\emp\\"); // Normalize uppercase to lowercase
             
             // Also support other SAPI4 tags
             // \Pau=N\ - pause for N milliseconds
