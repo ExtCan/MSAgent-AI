@@ -225,14 +225,11 @@ namespace MSAgentAI.Config
                 text = text.Replace("##", nameToSpeak);
             }
 
-            // Apply pronunciation dictionary using \map\ SAPI4 command
-            // Format: \map="pronunciation"="word"\
-            // The \map\ command is prepended ONCE for each word that appears in text
+            // Apply pronunciation dictionary by directly replacing words with their pronunciations
+            // This ensures EVERY instance of the word is pronounced correctly
+            // Using direct replacement instead of \map\ command which only works once in MS Agent
             if (PronunciationDictionary != null && PronunciationDictionary.Count > 0)
             {
-                // Build a list of \map\ commands to prepend
-                var mapCommands = new System.Text.StringBuilder();
-                
                 foreach (var entry in PronunciationDictionary)
                 {
                     if (!string.IsNullOrEmpty(entry.Key) && !string.IsNullOrEmpty(entry.Value))
@@ -241,20 +238,13 @@ namespace MSAgentAI.Config
                         // This prevents "AI" from matching inside "Entertaining"
                         string pattern = @"\b" + System.Text.RegularExpressions.Regex.Escape(entry.Key) + @"\b";
                         
-                        // Check if this word appears in the text (case-insensitive)
-                        if (System.Text.RegularExpressions.Regex.IsMatch(text, pattern, 
-                            System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-                        {
-                            // Prepend the map command once for this word
-                            mapCommands.Append($"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\");
-                        }
+                        // Replace ALL occurrences (case-insensitive) with the pronunciation
+                        text = System.Text.RegularExpressions.Regex.Replace(
+                            text, 
+                            pattern, 
+                            entry.Value, 
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                     }
-                }
-                
-                // Prepend all map commands to the beginning of the text
-                if (mapCommands.Length > 0)
-                {
-                    text = mapCommands.ToString() + text;
                 }
             }
 
