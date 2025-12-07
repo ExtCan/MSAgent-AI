@@ -9,6 +9,7 @@ using MSAgentAI.Agent;
 using MSAgentAI.AI;
 using MSAgentAI.Config;
 using MSAgentAI.Logging;
+using MSAgentAI.Pipeline;
 using MSAgentAI.Voice;
 
 namespace MSAgentAI.UI
@@ -26,6 +27,7 @@ namespace MSAgentAI.UI
         private OllamaClient _ollamaClient;
         private AppSettings _settings;
         private SpeechRecognitionManager _speechRecognition;
+        private PipelineServer _pipelineServer;
         private bool _inCallMode;
 
         private NotifyIcon _trayIcon;
@@ -74,6 +76,9 @@ namespace MSAgentAI.UI
 
             // Initialize timers
             InitializeTimers();
+
+            // Initialize communication pipeline
+            InitializePipeline();
 
             // Load the agent if a character is selected
             LoadAgentFromSettings();
@@ -207,6 +212,80 @@ namespace MSAgentAI.UI
             if (_settings.EnableRandomDialog)
             {
                 _randomDialogTimer.Start();
+            }
+        }
+
+        /// <summary>
+        /// Initialize the communication pipeline for external application interaction
+        /// </summary>
+        private void InitializePipeline()
+        {
+            try
+            {
+                _pipelineServer = new PipelineServer();
+                
+                // Wire up pipeline events
+                _pipelineServer.OnSpeakCommand += (s, text) => {
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => SpeakWithAnimations(text)));
+                    else
+                        SpeakWithAnimations(text);
+                };
+                
+                _pipelineServer.OnAnimationCommand += (s, animName) => {
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => _agentManager?.PlayAnimation(animName)));
+                    else
+                        _agentManager?.PlayAnimation(animName);
+                };
+                
+                _pipelineServer.OnChatCommand += async (s, prompt) => {
+                    try
+                    {
+                        var response = await _ollamaClient.ChatAsync(prompt, _cancellationTokenSource.Token);
+                        if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
+                        {
+                            if (this.InvokeRequired)
+                                this.Invoke((Action)(() => SpeakWithAnimations(response)));
+                            else
+                                SpeakWithAnimations(response);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError("Pipeline: Chat command failed", ex);
+                    }
+                };
+                
+                _pipelineServer.OnHideCommand += (s, e) => {
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => _agentManager?.Hide(false)));
+                    else
+                        _agentManager?.Hide(false);
+                };
+                
+                _pipelineServer.OnShowCommand += (s, e) => {
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => _agentManager?.Show(false)));
+                    else
+                        _agentManager?.Show(false);
+                };
+                
+                _pipelineServer.OnPokeCommand += (s, e) => {
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => OnPoke(s, e)));
+                    else
+                        OnPoke(s, e);
+                };
+                
+                // Start the pipeline server
+                _pipelineServer.Start();
+                
+                Logger.Log("Communication pipeline initialized");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to initialize communication pipeline", ex);
             }
         }
 
@@ -851,6 +930,9 @@ namespace MSAgentAI.UI
                 _speechRecognition?.StopListening();
             }
             _speechRecognition?.Dispose();
+
+            // Stop the communication pipeline
+            _pipelineServer?.Dispose();
 
             _trayIcon?.Dispose();
             _agentManager?.Dispose();
