@@ -227,23 +227,34 @@ namespace MSAgentAI.Config
 
             // Apply pronunciation dictionary using \map\ SAPI4 command
             // Format: \map="pronunciation"="word"\
+            // The \map\ command is prepended ONCE for each word that appears in text
             if (PronunciationDictionary != null && PronunciationDictionary.Count > 0)
             {
+                // Build a list of \map\ commands to prepend
+                var mapCommands = new System.Text.StringBuilder();
+                
                 foreach (var entry in PronunciationDictionary)
                 {
                     if (!string.IsNullOrEmpty(entry.Key) && !string.IsNullOrEmpty(entry.Value))
                     {
-                        // Replace all occurrences of the word with the \map\ command
-                        // The \map\ command tells SAPI4 to pronounce the word differently
-                        string mapCommand = $"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\";
+                        // Use word boundaries (\b) to match WHOLE words only, not substrings
+                        // This prevents "AI" from matching inside "Entertaining"
+                        string pattern = @"\b" + System.Text.RegularExpressions.Regex.Escape(entry.Key) + @"\b";
                         
-                        // Use case-insensitive replacement
-                        text = System.Text.RegularExpressions.Regex.Replace(
-                            text, 
-                            System.Text.RegularExpressions.Regex.Escape(entry.Key), 
-                            mapCommand + entry.Key, 
-                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                        // Check if this word appears in the text (case-insensitive)
+                        if (System.Text.RegularExpressions.Regex.IsMatch(text, pattern, 
+                            System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        {
+                            // Prepend the map command once for this word
+                            mapCommands.Append($"\\map=\"{entry.Value}\"=\"{entry.Key}\"\\");
+                        }
                     }
+                }
+                
+                // Prepend all map commands to the beginning of the text
+                if (mapCommands.Length > 0)
+                {
+                    text = mapCommands.ToString() + text;
                 }
             }
 
