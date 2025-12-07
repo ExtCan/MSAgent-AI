@@ -1,0 +1,8 @@
+{
+  "name": "MSAgent AI Commentary",
+  "author": "MSAgent-AI",
+  "version": "1.0.0",
+  "description": "AI-powered commentary system that reacts to vehicle events, crashes, damage, and surroundings in BeamNG.drive",
+  "gameVersions": ["0.30", "0.31", "0.32"],
+  "dependencies": []
+}
