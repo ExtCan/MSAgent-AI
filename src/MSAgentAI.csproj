@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <StartupObject>MSAgentAI.Program</StartupObject>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyTitle>MSAgent AI Desktop Friend</AssemblyTitle>
+    <AssemblyDescription>A desktop friend application using MS Agents and SAPI4 TTS with Ollama AI integration</AssemblyDescription>
+    <Company>MSAgent-AI</Company>
+    <Product>MSAgent AI Desktop Friend</Product>
+    <Copyright>Copyright © 2024</Copyright>
+    <Version>1.0.0</Version>
+    <!-- IMPORTANT: MS Agent and SAPI4 are 32-bit only COM components -->
+    <!-- The application MUST run in 32-bit (x86) mode to access them -->
+    <PlatformTarget>x86</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Net.Http" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Speech" />
+  </ItemGroup>
+
+</Project>
