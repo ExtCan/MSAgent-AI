@@ -247,7 +247,7 @@ namespace MSAgentGTAV
                     lastVehicle = currentVehicle;
                     
                     string vehicleType = GetVehicleTypeString(currentVehicle);
-                    string vehicleName = currentVehicle.Model.DisplayName;
+                    string vehicleName = ((VehicleHash)currentVehicle.Model.Hash).ToString();
                     string valueInfo = "";
                     
                     if (reactToVehicleValue && vehicleValues.ContainsKey((VehicleHash)currentVehicle.Model.Hash))
