@@ -33,7 +33,7 @@ jobs:
         Write-Host "Downloading ScriptHookVDotNet v3..."
         
         # Download latest release of ScriptHookVDotNet
-        $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet-v3.6.0.zip"
+        $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet.zip"
         $output = "SHVDN.zip"
         
         try {
