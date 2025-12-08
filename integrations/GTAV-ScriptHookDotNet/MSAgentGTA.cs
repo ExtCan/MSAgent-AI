@@ -270,7 +270,7 @@ namespace MSAgentGTA
             _state.LastWeather = currentWeather;
 
             // Check time changes (hourly)
-            int hour = World.CurrentDayTime.Hours;
+            int hour = Function.Call<int>(Hash.GET_CLOCK_HOURS);
             if (hour != _state.LastHour && _state.LastHour != -1)
             {
                 string timeOfDay;
