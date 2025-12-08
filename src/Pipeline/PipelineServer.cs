@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,8 +11,9 @@ using MSAgentAI.Logging;
 namespace MSAgentAI.Pipeline
 {
     /// <summary>
-    /// Named pipe server for external application communication.
-    /// Games and scripts can connect to "MSAgentAI" pipe to send commands.
+    /// Pipeline server for external application communication.
+    /// Supports both Named Pipes (local) and TCP sockets (network).
+    /// Games and scripts can connect to send commands.
     /// 
     /// Protocol:
     /// - SPEAK:text - Make agent speak the text
@@ -27,6 +30,13 @@ namespace MSAgentAI.Pipeline
         private CancellationTokenSource _cancellationTokenSource;
         private Task _serverTask;
         private bool _isRunning;
+        private TcpListener _tcpListener;
+        
+        // Configuration
+        private string _protocol;
+        private string _ipAddress;
+        private int _port;
+        private string _pipeName;
         
         /// <summary>
         /// Event raised when a SPEAK command is received
@@ -66,7 +76,29 @@ namespace MSAgentAI.Pipeline
         public bool IsRunning => _isRunning;
         
         /// <summary>
-        /// Starts the named pipe server
+        /// Constructor with default configuration (Named Pipe)
+        /// </summary>
+        public PipelineServer() : this("NamedPipe", "127.0.0.1", 8765, PipeName)
+        {
+        }
+        
+        /// <summary>
+        /// Constructor with custom configuration
+        /// </summary>
+        /// <param name="protocol">Protocol type: "NamedPipe" or "TCP"</param>
+        /// <param name="ipAddress">IP address for TCP mode</param>
+        /// <param name="port">Port for TCP mode</param>
+        /// <param name="pipeName">Pipe name for Named Pipe mode</param>
+        public PipelineServer(string protocol, string ipAddress, int port, string pipeName)
+        {
+            _protocol = protocol ?? "NamedPipe";
+            _ipAddress = ipAddress ?? "127.0.0.1";
+            _port = port;
+            _pipeName = pipeName ?? PipeName;
+        }
+        
+        /// <summary>
+        /// Starts the pipeline server
         /// </summary>
         public void Start()
         {
@@ -76,12 +108,20 @@ namespace MSAgentAI.Pipeline
             _cancellationTokenSource = new CancellationTokenSource();
             _isRunning = true;
             
-            _serverTask = Task.Run(() => RunServerAsync(_cancellationTokenSource.Token));
-            Logger.Log($"Pipeline server started on pipe: \\\\.\\pipe\\{PipeName}");
+            if (_protocol.Equals("TCP", StringComparison.OrdinalIgnoreCase))
+            {
+                _serverTask = Task.Run(() => RunTcpServerAsync(_cancellationTokenSource.Token));
+                Logger.Log($"Pipeline TCP server started on {_ipAddress}:{_port}");
+            }
+            else
+            {
+                _serverTask = Task.Run(() => RunNamedPipeServerAsync(_cancellationTokenSource.Token));
+                Logger.Log($"Pipeline server started on pipe: \\\\.\\pipe\\{_pipeName}");
+            }
         }
         
         /// <summary>
-        /// Stops the named pipe server
+        /// Stops the pipeline server
         /// </summary>
         public void Stop()
         {
@@ -90,11 +130,12 @@ namespace MSAgentAI.Pipeline
                 
             _isRunning = false;
             _cancellationTokenSource?.Cancel();
+            _tcpListener?.Stop();
             
             Logger.Log("Pipeline server stopped");
         }
         
-        private async Task RunServerAsync(CancellationToken cancellationToken)
+        private async Task RunNamedPipeServerAsync(CancellationToken cancellationToken)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -102,7 +143,7 @@ namespace MSAgentAI.Pipeline
                 {
                     // Create a new pipe server for each connection
                     using (var pipeServer = new NamedPipeServerStream(
-                        PipeName,
+                        _pipeName,
                         PipeDirection.InOut,
                         NamedPipeServerStream.MaxAllowedServerInstances,
                         PipeTransmissionMode.Message,
@@ -116,7 +157,7 @@ namespace MSAgentAI.Pipeline
                         Logger.Log("Pipeline: Client connected");
                         
                         // Handle the connection
-                        await HandleConnectionAsync(pipeServer, cancellationToken);
+                        await HandleNamedPipeConnectionAsync(pipeServer, cancellationToken);
                     }
                 }
                 catch (OperationCanceledException)
@@ -141,7 +182,48 @@ namespace MSAgentAI.Pipeline
             }
         }
         
-        private async Task HandleConnectionAsync(NamedPipeServerStream pipeServer, CancellationToken cancellationToken)
+        private async Task RunTcpServerAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                IPAddress ipAddr = IPAddress.Parse(_ipAddress);
+                _tcpListener = new TcpListener(ipAddr, _port);
+                _tcpListener.Start();
+                
+                Logger.Log($"TCP Pipeline: Listening on {_ipAddress}:{_port}");
+                
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        // Accept client connection
+                        var client = await _tcpListener.AcceptTcpClientAsync();
+                        Logger.Log($"TCP Pipeline: Client connected from {client.Client.RemoteEndPoint}");
+                        
+                        // Handle each client in a separate task
+                        _ = Task.Run(() => HandleTcpConnectionAsync(client, cancellationToken), cancellationToken);
+                    }
+                    catch (ObjectDisposedException)
+                    {
+                        // Listener was stopped
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        if (!cancellationToken.IsCancellationRequested)
+                        {
+                            Logger.LogError("TCP Pipeline: Error accepting connection", ex);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("TCP Pipeline: Server error", ex);
+            }
+        }
+        
+        private async Task HandleNamedPipeConnectionAsync(NamedPipeServerStream pipeServer, CancellationToken cancellationToken)
         {
             try
             {
@@ -174,6 +256,46 @@ namespace MSAgentAI.Pipeline
             catch (Exception ex)
             {
                 Logger.LogError("Pipeline: Error handling connection", ex);
+            }
+        }
+        
+        private async Task HandleTcpConnectionAsync(TcpClient client, CancellationToken cancellationToken)
+        {
+            try
+            {
+                using (client)
+                using (var stream = client.GetStream())
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                {
+                    // Read commands until the client disconnects
+                    while (!cancellationToken.IsCancellationRequested)
+                    {
+                        string line = await reader.ReadLineAsync();
+                        
+                        if (string.IsNullOrEmpty(line))
+                            break;
+                            
+                        Logger.Log($"TCP Pipeline: Received command: {line}");
+                        
+                        // Parse and process the command
+                        var response = ProcessCommand(line);
+                        
+                        // Send response
+                        await writer.WriteLineAsync(response);
+                    }
+                }
+                
+                Logger.Log($"TCP Pipeline: Client disconnected");
+            }
+            catch (IOException)
+            {
+                // Client disconnected
+                Logger.Log("TCP Pipeline: Client disconnected (IO error)");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("TCP Pipeline: Error handling connection", ex);
             }
         }
         

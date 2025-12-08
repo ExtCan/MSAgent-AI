@@ -222,7 +222,12 @@ namespace MSAgentAI.UI
         {
             try
             {
-                _pipelineServer = new PipelineServer();
+                _pipelineServer = new PipelineServer(
+                    _settings.PipelineProtocol,
+                    _settings.PipelineIPAddress,
+                    _settings.PipelinePort,
+                    _settings.PipelineName
+                );
                 
                 // Wire up pipeline events
                 _pipelineServer.OnSpeakCommand += (s, text) => {

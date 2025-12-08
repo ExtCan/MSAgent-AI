@@ -39,6 +39,12 @@ namespace MSAgentAI.Config
         public string PersonalityPrompt { get; set; } = "You are a helpful and friendly desktop companion. Keep responses short and conversational.";
         public bool EnableOllamaChat { get; set; } = false;
 
+        // Pipeline settings
+        public string PipelineProtocol { get; set; } = "NamedPipe"; // "NamedPipe" or "TCP"
+        public string PipelineIPAddress { get; set; } = "127.0.0.1"; // For TCP mode
+        public int PipelinePort { get; set; } = 8765; // For TCP mode
+        public string PipelineName { get; set; } = "MSAgentAI"; // For Named Pipe mode
+
         // Random dialog settings
         public bool EnableRandomDialog { get; set; } = true;
         public int RandomDialogChance { get; set; } = 9000; // 1 in 9000 chance per second
