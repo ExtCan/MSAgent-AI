@@ -105,58 +105,45 @@ jobs:
     - name: Create Build Info
       shell: powershell
       run: |
-        $buildInfo = @'
-MSAgent-AI GTA V Integration (ScriptHookDotNet)
-================================================
-
-Build Date: {0}
-Commit: {1}
-Branch: {2}
-Build Status: SUCCESS
-
-Installation Instructions:
-==========================
-
-1. Install ScriptHookVDotNet v3:
-   - Download from: https://github.com/scripthookvdotnet/scripthookvdotnet/releases
-   - Extract ScriptHookVDotNet3.dll to your GTA V directory
-
-2. Install MSAgentGTA.dll:
-   - Create a 'scripts' folder in your GTA V directory (if it doesn't exist)
-   - Copy MSAgentGTA.dll to GTA V/scripts/
-
-3. Make sure MSAgent-AI is running:
-   - Launch the MSAgent-AI application
-   - Configure your character and Ollama AI settings
-
-4. Launch GTA V:
-   - Start the game
-   - Press [ (left bracket) in-game to open the menu
-   - Configure which reactions you want enabled
-
-Features:
-=========
-- Vehicle reactions (entering/exiting vehicles with AI commentary)
-- Environment monitoring (weather, time of day, location)
-- Character health monitoring
-- Wanted level reactions
-- In-game menu with 6 toggleable reaction categories
-- Live commentary mode (5-minute intervals)
-
-Keybinding:
-===========
-Press [ (left bracket) to open/close the menu
-
-For more information, see:
-https://github.com/{3}/tree/{2}/integrations/GTAV-ScriptHookDotNet
-
-Documentation:
-- README.md - Complete guide
-- QUICKSTART.md - Quick installation
-'@
+        $content = "MSAgent-AI GTA V Integration (ScriptHookDotNet)`n"
+        $content += "================================================`n`n"
+        $content += "Build Date: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')`n"
+        $content += "Commit: $env:GITHUB_SHA`n"
+        $content += "Branch: $env:GITHUB_REF_NAME`n"
+        $content += "Build Status: SUCCESS`n`n"
+        $content += "Installation Instructions:`n"
+        $content += "==========================`n`n"
+        $content += "1. Install ScriptHookVDotNet v3:`n"
+        $content += "   - Download from: https://github.com/scripthookvdotnet/scripthookvdotnet/releases`n"
+        $content += "   - Extract ScriptHookVDotNet3.dll to your GTA V directory`n`n"
+        $content += "2. Install MSAgentGTA.dll:`n"
+        $content += "   - Create a 'scripts' folder in your GTA V directory (if it doesn't exist)`n"
+        $content += "   - Copy MSAgentGTA.dll to GTA V/scripts/`n`n"
+        $content += "3. Make sure MSAgent-AI is running:`n"
+        $content += "   - Launch the MSAgent-AI application`n"
+        $content += "   - Configure your character and Ollama AI settings`n`n"
+        $content += "4. Launch GTA V:`n"
+        $content += "   - Start the game`n"
+        $content += "   - Press [ (left bracket) in-game to open the menu`n"
+        $content += "   - Configure which reactions you want enabled`n`n"
+        $content += "Features:`n"
+        $content += "=========`n"
+        $content += "- Vehicle reactions (entering/exiting vehicles with AI commentary)`n"
+        $content += "- Environment monitoring (weather, time of day, location)`n"
+        $content += "- Character health monitoring`n"
+        $content += "- Wanted level reactions`n"
+        $content += "- In-game menu with 6 toggleable reaction categories`n"
+        $content += "- Live commentary mode (5-minute intervals)`n`n"
+        $content += "Keybinding:`n"
+        $content += "===========`n"
+        $content += "Press [ (left bracket) to open/close the menu`n`n"
+        $content += "For more information, see:`n"
+        $content += "https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_REF_NAME/integrations/GTAV-ScriptHookDotNet`n`n"
+        $content += "Documentation:`n"
+        $content += "- README.md - Complete guide`n"
+        $content += "- QUICKSTART.md - Quick installation`n"
         
-        $buildInfo = $buildInfo -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"), $env:GITHUB_SHA, $env:GITHUB_REF_NAME, $env:GITHUB_REPOSITORY
-        $buildInfo | Out-File -FilePath "BUILD_INFO.txt" -Encoding UTF8
+        $content | Out-File -FilePath "BUILD_INFO.txt" -Encoding UTF8 -NoNewline
         Write-Host "Created BUILD_INFO.txt"
 
     - name: Upload MSAgentGTA Artifact
