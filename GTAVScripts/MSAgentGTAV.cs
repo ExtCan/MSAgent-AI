@@ -51,7 +51,7 @@ namespace MSAgentGTAV
         private DateTime lastWeatherReactionTime = DateTime.MinValue;
         private Model lastCharacterModel;
         private bool playerWasDead = false;
-        private Hash lastMissionHash = 0;
+        private Hash lastMissionHash = (Hash)0;
         
         // Cached character hashes for performance
         private readonly int michaelHash = PedHash.Michael.GetHashCode();
@@ -82,7 +82,7 @@ namespace MSAgentGTAV
             vehicleValues[VehicleHash.Osiris] = 1950000;
             vehicleValues[VehicleHash.T20] = 2200000;
             vehicleValues[VehicleHash.Turismor] = 500000;
-            vehicleValues[VehicleHash.Entityxf] = 795000;
+            vehicleValues[VehicleHash.EntityXF] = 795000;
             vehicleValues[VehicleHash.Infernus] = 440000;
             vehicleValues[VehicleHash.Vacca] = 240000;
             vehicleValues[VehicleHash.Bullet] = 155000;
@@ -101,7 +101,7 @@ namespace MSAgentGTAV
             vehicleValues[VehicleHash.Akuma] = 9000;
             vehicleValues[VehicleHash.Bati] = 15000;
             vehicleValues[VehicleHash.Hakuchou] = 82000;
-            vehicleValues[VehicleHash.Pcj] = 9000;
+            vehicleValues[VehicleHash.PCJ] = 9000;
             
             // Helicopters
             vehicleValues[VehicleHash.Buzzard2] = 1750000;
@@ -247,7 +247,7 @@ namespace MSAgentGTAV
                     lastVehicle = currentVehicle;
                     
                     string vehicleType = GetVehicleTypeString(currentVehicle);
-                    string vehicleName = currentVehicle.FriendlyName;
+                    string vehicleName = currentVehicle.Model.DisplayName;
                     string valueInfo = "";
                     
                     if (reactToVehicleValue && vehicleValues.ContainsKey((VehicleHash)currentVehicle.Model.Hash))
@@ -289,7 +289,7 @@ namespace MSAgentGTAV
         {
             if (!reactToTime) return;
             
-            int currentHour = World.CurrentDayTime.Hours;
+            int currentHour = World.CurrentDate.Hour;
             
             // React to major time transitions
             if (lastHour != -1 && lastHour != currentHour)
@@ -395,17 +395,17 @@ namespace MSAgentGTAV
             bool isInMission = Function.Call<bool>(Hash.GET_MISSION_FLAG);
             
             // Track mission state changes
-            if (isInMission && lastMissionHash == 0)
+            if (isInMission && lastMissionHash == (Hash)0)
             {
                 if (CanReact(ref lastReactionTime, COOLDOWN_MS))
                 {
-                    lastMissionHash = 1; // Simple flag to indicate mission is active
+                    lastMissionHash = (Hash)1; // Simple flag to indicate mission is active
                     SendChatPrompt("A mission started or progressed. Comment on the mission action!");
                 }
             }
-            else if (!isInMission && lastMissionHash != 0)
+            else if (!isInMission && lastMissionHash != (Hash)0)
             {
-                lastMissionHash = 0; // Mission ended
+                lastMissionHash = (Hash)0; // Mission ended
                 // Note: We don't react to mission end to avoid spam
             }
         }
