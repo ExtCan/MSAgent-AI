@@ -171,7 +171,7 @@ jobs:
         Write-Host "Updated project file to use lib/ScriptHookVDotNet3.dll and lib/NativeUI.dll"
 
     - name: Build GTA V Script
-      run: msbuild GTAVScripts/MSAgentGTAV.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:OutputPath=bin/Release/
+      run: msbuild GTAVScripts/MSAgentGTAV.csproj /p:Configuration=Release /p:Platform="x64" /p:OutputPath=bin/Release/
 
     - name: Verify build output
       shell: powershell
