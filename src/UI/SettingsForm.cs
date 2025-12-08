@@ -1281,7 +1281,10 @@ namespace MSAgentAI.UI
             _linesTextBoxes["randomPrompts"].Text = string.Join(Environment.NewLine, _settings.RandomDialogPrompts);
 
             // Pipeline settings
-            _pipelineProtocolComboBox.SelectedItem = _settings.PipelineProtocol ?? "NamedPipe";
+            string protocol = _settings.PipelineProtocol ?? "NamedPipe";
+            int protocolIndex = _pipelineProtocolComboBox.Items.IndexOf(protocol);
+            _pipelineProtocolComboBox.SelectedIndex = protocolIndex >= 0 ? protocolIndex : 0;
+            
             _pipelineIpTextBox.Text = _settings.PipelineIPAddress ?? "127.0.0.1";
             _pipelinePortNumeric.Value = Math.Max(_pipelinePortNumeric.Minimum, 
                 Math.Min(_pipelinePortNumeric.Maximum, _settings.PipelinePort));
@@ -1361,6 +1364,7 @@ namespace MSAgentAI.UI
                 MessageBox.Show("Invalid IP address. Using default 127.0.0.1", "Invalid IP Address", 
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 _settings.PipelineIPAddress = "127.0.0.1";
+                _pipelineIpTextBox.Text = "127.0.0.1"; // Update UI to show the fallback value
             }
             else
             {
@@ -1371,11 +1375,23 @@ namespace MSAgentAI.UI
             
             // Validate pipe name - remove invalid characters
             string pipeName = _pipelineNameTextBox.Text;
-            char[] invalidChars = System.IO.Path.GetInvalidFileNameChars();
-            pipeName = new string(pipeName.Where(c => !invalidChars.Contains(c) && c != '\\' && c != '/').ToArray());
+            var invalidChars = new HashSet<char>(System.IO.Path.GetInvalidFileNameChars());
+            invalidChars.Add('\\');
+            invalidChars.Add('/');
+            
+            // Filter out invalid characters efficiently
+            var validChars = new System.Text.StringBuilder();
+            foreach (char c in pipeName)
+            {
+                if (!invalidChars.Contains(c))
+                    validChars.Append(c);
+            }
+            pipeName = validChars.ToString().Trim();
+            
             if (string.IsNullOrWhiteSpace(pipeName))
             {
                 pipeName = "MSAgentAI";
+                _pipelineNameTextBox.Text = pipeName; // Update UI to show the fallback value
             }
             _settings.PipelineName = pipeName;
 

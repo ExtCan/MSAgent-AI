@@ -206,8 +206,18 @@ namespace MSAgentAI.Pipeline
                         var client = await _tcpListener.AcceptTcpClientAsync();
                         Logger.Log($"TCP Pipeline: Client connected from {client.Client.RemoteEndPoint}");
                         
-                        // Handle each client in a separate task
-                        _ = Task.Run(() => HandleTcpConnectionAsync(client, cancellationToken), cancellationToken);
+                        // Handle each client in a separate task with proper exception handling
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await HandleTcpConnectionAsync(client, cancellationToken);
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError("TCP Pipeline: Unhandled exception in client handler", ex);
+                            }
+                        }, cancellationToken);
                     }
                     catch (ObjectDisposedException)
                     {
