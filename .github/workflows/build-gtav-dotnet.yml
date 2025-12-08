@@ -87,7 +87,7 @@ jobs:
         
         Write-Host "Building MSAgentGTA.dll..."
         
-        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform=AnyCPU /verbosity:minimal
+        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform="AnyCPU" /verbosity:minimal
         
         Write-Host "Checking build output..."
         Get-ChildItem -Recurse -Filter "MSAgentGTA.dll" | ForEach-Object { Write-Host "Found DLL at: $($_.FullName)" }
