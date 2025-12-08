@@ -110,32 +110,31 @@ jobs:
         Copy-Item "GTAVScripts/QUICKSTART.md" "release-package/"
         Copy-Item "GTAVScripts/TROUBLESHOOTING.md" "release-package/" -ErrorAction SilentlyContinue
 
-        # Create an installation instruction file
-        @"
-# MSAgentGTAV Installation
-
-This package contains the compiled MSAgentGTAV.dll script for GTA V.
-
-## Installation Steps:
-
-1. Ensure you have the following prerequisites installed:
-   - GTA V (PC version)
-   - ScriptHookV - http://www.dev-c.com/gtav/scripthookv/
-   - ScriptHookVDotNet v3.x - https://github.com/scripthookvdotnet/scripthookvdotnet/releases
-   - MSAgent-AI application running
-
-2. Copy MSAgentGTAV.dll to your GTA V scripts folder:
-   - Default location: C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\
-   - Create the 'scripts' folder if it doesn't exist
-
-3. Launch MSAgent-AI first, then launch GTA V
-
-4. Press F9 in-game to open the menu
-
-For detailed instructions, see README.md and QUICKSTART.md
-
-Built with GitHub Actions on $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
-"@ | Out-File "release-package/INSTALL.txt" -Encoding UTF8
+        # Create an installation instruction file using Set-Content
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+        Set-Content -Path "release-package/INSTALL.txt" -Value "# MSAgentGTAV Installation" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "This package contains the compiled MSAgentGTAV.dll script for GTA V." -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "## Installation Steps:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "1. Ensure you have the following prerequisites installed:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - GTA V (PC version)" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - ScriptHookV - http://www.dev-c.com/gtav/scripthookv/" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - ScriptHookVDotNet v3.x - https://github.com/scripthookvdotnet/scripthookvdotnet/releases" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - MSAgent-AI application running" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "2. Copy MSAgentGTAV.dll to your GTA V scripts folder:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - Default location: C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - Create the 'scripts' folder if it doesn't exist" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "3. Launch MSAgent-AI first, then launch GTA V" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "4. Press F9 in-game to open the menu" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "For detailed instructions, see README.md and QUICKSTART.md" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "Built with GitHub Actions on $timestamp" -Encoding UTF8
 
         Write-Host "Release package created successfully"
 
