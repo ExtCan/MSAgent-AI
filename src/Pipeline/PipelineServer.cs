@@ -207,6 +207,10 @@ namespace MSAgentAI.Pipeline
                         Logger.Log($"TCP Pipeline: Client connected from {client.Client.RemoteEndPoint}");
                         
                         // Handle each client in a separate task with proper exception handling
+                        // Using fire-and-forget pattern is acceptable for server scenarios where:
+                        // 1. Each task fully handles its own exceptions (logged)
+                        // 2. Client disconnection properly disposes resources (using statements)
+                        // 3. Tasks are short-lived and self-contained
                         _ = Task.Run(async () =>
                         {
                             try
