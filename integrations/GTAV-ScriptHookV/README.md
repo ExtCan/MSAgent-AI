@@ -39,20 +39,27 @@ Navigate with **Arrow Keys**, toggle settings with **Enter**, and close with **[
 
 ## Installation
 
-### Option 1: Pre-built (Recommended)
+### Option 1: Pre-built from GitHub Actions (Recommended if available)
 1. Install ScriptHook V by copying `ScriptHookV.dll` and `dinput8.dll` to your GTA V directory
-2. Download the pre-built `MSAgentGTA.asi` file
-3. Copy `MSAgentGTA.asi` to your GTA V directory
-4. Launch MSAgent-AI first
-5. Launch GTA V
+2. Go to the [Actions tab](../../actions/workflows/build-gtav.yml) in this repository
+3. Find the latest successful workflow run
+4. Download the `MSAgentGTA-*` artifact
+5. Extract and copy `MSAgentGTA.asi` to your GTA V directory
+6. Launch MSAgent-AI first
+7. Launch GTA V
+
+**Note:** The automated build may fail if the ScriptHook V SDK cannot be downloaded automatically. In that case, use Option 2 to build manually.
 
 ### Option 2: Build from Source
 1. Download ScriptHook V SDK from http://www.dev-c.com/gtav/scripthookv/
 2. Extract the SDK and copy the `inc` folder contents to `integrations/GTAV-ScriptHookV/inc/`
-3. Open the Visual Studio solution (`MSAgentGTA.sln`)
-4. Build the project in Release mode (x86)
-5. Copy the resulting `MSAgentGTA.asi` to your GTA V directory
-6. Follow steps 4-5 from Option 1
+3. Copy `SDK/lib/ScriptHookV.lib` to `integrations/GTAV-ScriptHookV/lib/`
+4. Open the Visual Studio solution (`MSAgentGTA.sln`)
+5. Build the project in Release mode (x86)
+6. Copy the resulting `MSAgentGTA.asi` to your GTA V directory
+7. Install ScriptHook V runtime (ScriptHookV.dll and dinput8.dll) in your GTA V directory
+8. Launch MSAgent-AI first
+9. Launch GTA V
 
 ## Building the Script
 
