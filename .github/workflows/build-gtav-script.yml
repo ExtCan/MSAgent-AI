@@ -26,18 +26,31 @@ jobs:
         # Create a temporary directory for dependencies
         New-Item -ItemType Directory -Force -Path "GTAVScripts/lib"
 
-        # Download ScriptHookVDotNet3 (using a stable release URL)
-        # Note: This is a mock DLL path for build purposes
-        # Users will need the actual ScriptHookVDotNet3.dll from their GTA V installation
-
-        # For CI build purposes, we'll create a reference assembly
-        # This allows the build to succeed without the full ScriptHookVDotNet installed
-
-        # Download the actual ScriptHookVDotNet release
-        $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet-v3.6.0.zip"
+        # Download ScriptHookVDotNet3
+        # Using the latest stable release from the official repository
+        
+        # Try to get the latest release, fallback to a known working version
+        $latestReleaseUrl = "https://api.github.com/repos/scripthookvdotnet/scripthookvdotnet/releases/latest"
+        
+        try {
+          Write-Host "Fetching latest ScriptHookVDotNet release info..."
+          $release = Invoke-RestMethod -Uri $latestReleaseUrl -ErrorAction Stop
+          $asset = $release.assets | Where-Object { $_.name -like "ScriptHookVDotNet*.zip" } | Select-Object -First 1
+          
+          if ($asset) {
+            $url = $asset.browser_download_url
+            Write-Host "Found latest release: $($release.tag_name)"
+          } else {
+            throw "No suitable asset found in latest release"
+          }
+        } catch {
+          Write-Host "Could not fetch latest release, using fallback version v3.0.2"
+          $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.0.2/ScriptHookVDotNet-v3.0.2.zip"
+        }
+        
         $output = "GTAVScripts/lib/ScriptHookVDotNet.zip"
 
-        Write-Host "Downloading ScriptHookVDotNet3..."
+        Write-Host "Downloading ScriptHookVDotNet3 from: $url"
         Invoke-WebRequest -Uri $url -OutFile $output -ErrorAction Stop
 
         Write-Host "Extracting ScriptHookVDotNet3.dll..."
