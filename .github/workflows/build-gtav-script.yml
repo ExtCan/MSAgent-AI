@@ -7,9 +7,6 @@ on:
       - '.github/workflows/build-gtav-script.yml'
   pull_request:
     branches: [main, master]
-    paths:
-      - 'GTAVScripts/**'
-      - '.github/workflows/build-gtav-script.yml'
   workflow_dispatch:
 
 jobs:
