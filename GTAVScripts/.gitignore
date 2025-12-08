@@ -1,7 +1,6 @@
 # Build results
 bin/
 obj/
-*.dll
 *.pdb
 
 # Visual Studio
@@ -15,3 +14,7 @@ obj/
 # Dependencies (downloaded by CI)
 lib/
 *.zip
+
+# Allow DLLs in built folder
+*.dll
+!built/*.dll
