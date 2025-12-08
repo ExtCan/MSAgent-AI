@@ -2,12 +2,12 @@ name: Build GTA V Script
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
       - 'GTAVScripts/**'
       - '.github/workflows/build-gtav-script.yml'
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
       - 'GTAVScripts/**'
       - '.github/workflows/build-gtav-script.yml'
@@ -16,37 +16,37 @@ on:
 jobs:
   build-gtav-script:
     runs-on: windows-latest
-    
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    
+
     - name: Setup MSBuild
       uses: microsoft/setup-msbuild@v2
-    
+
     - name: Download ScriptHookVDotNet3
       shell: powershell
       run: |
         # Create a temporary directory for dependencies
         New-Item -ItemType Directory -Force -Path "GTAVScripts/lib"
-        
+
         # Download ScriptHookVDotNet3 (using a stable release URL)
         # Note: This is a mock DLL path for build purposes
         # Users will need the actual ScriptHookVDotNet3.dll from their GTA V installation
-        
+
         # For CI build purposes, we'll create a reference assembly
         # This allows the build to succeed without the full ScriptHookVDotNet installed
-        
+
         # Download the actual ScriptHookVDotNet release
         $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet-v3.6.0.zip"
         $output = "GTAVScripts/lib/ScriptHookVDotNet.zip"
-        
+
         Write-Host "Downloading ScriptHookVDotNet3..."
         Invoke-WebRequest -Uri $url -OutFile $output -ErrorAction Stop
-        
+
         Write-Host "Extracting ScriptHookVDotNet3.dll..."
         Expand-Archive -Path $output -DestinationPath "GTAVScripts/lib" -Force
-        
+
         # Find and copy the DLL
         $dll = Get-ChildItem -Path "GTAVScripts/lib" -Filter "ScriptHookVDotNet3.dll" -Recurse | Select-Object -First 1
         if ($dll) {
@@ -56,24 +56,24 @@ jobs:
           Write-Error "ScriptHookVDotNet3.dll not found in archive"
           exit 1
         }
-    
+
     - name: Update project reference path
       shell: powershell
       run: |
         # Update the .csproj to use the downloaded DLL
         $csprojPath = "GTAVScripts/MSAgentGTAV.csproj"
         $content = Get-Content $csprojPath -Raw
-        
+
         # Replace the GTAV_DIR reference with our lib directory
         $content = $content -replace '\$\(GTAV_DIR\)\\ScriptHookVDotNet3\.dll', 'lib\ScriptHookVDotNet3.dll'
-        
+
         Set-Content $csprojPath $content
-        
+
         Write-Host "Updated project file to use lib/ScriptHookVDotNet3.dll"
-    
+
     - name: Build GTA V Script
       run: msbuild GTAVScripts/MSAgentGTAV.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:OutputPath=bin/Release/
-    
+
     - name: Verify build output
       shell: powershell
       run: |
@@ -87,7 +87,7 @@ jobs:
           Write-Error "Build failed - MSAgentGTAV.dll not found"
           exit 1
         }
-    
+
     - name: Upload GTA V Script Artifact
       uses: actions/upload-artifact@v4
       with:
@@ -98,22 +98,22 @@ jobs:
           GTAVScripts/QUICKSTART.md
         retention-days: 90
         if-no-files-found: error
-    
+
     - name: Create release package
       if: success()
       shell: powershell
       run: |
         # Create a release package with documentation
         New-Item -ItemType Directory -Force -Path "release-package"
-        
+
         # Copy the DLL
         Copy-Item "GTAVScripts/bin/Release/MSAgentGTAV.dll" "release-package/"
-        
+
         # Copy documentation
         Copy-Item "GTAVScripts/README.md" "release-package/"
         Copy-Item "GTAVScripts/QUICKSTART.md" "release-package/"
         Copy-Item "GTAVScripts/TROUBLESHOOTING.md" "release-package/" -ErrorAction SilentlyContinue
-        
+
         # Create an installation instruction file
         @"
 # MSAgentGTAV Installation
@@ -140,9 +140,9 @@ For detailed instructions, see README.md and QUICKSTART.md
 
 Built with GitHub Actions on $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
 "@ | Out-File "release-package/INSTALL.txt" -Encoding UTF8
-        
+
         Write-Host "Release package created successfully"
-    
+
     - name: Upload Release Package
       uses: actions/upload-artifact@v4
       with:
