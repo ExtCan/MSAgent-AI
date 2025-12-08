@@ -1352,11 +1352,32 @@ namespace MSAgentAI.UI
             _settings.Thoughts = ParseLines(_linesTextBoxes["thoughts"].Text);
             _settings.RandomDialogPrompts = ParseLines(_linesTextBoxes["randomPrompts"].Text);
 
-            // Pipeline settings
+            // Pipeline settings - with validation
             _settings.PipelineProtocol = _pipelineProtocolComboBox.SelectedItem?.ToString() ?? "NamedPipe";
-            _settings.PipelineIPAddress = _pipelineIpTextBox.Text;
+            
+            // Validate IP address
+            if (!System.Net.IPAddress.TryParse(_pipelineIpTextBox.Text, out _))
+            {
+                MessageBox.Show("Invalid IP address. Using default 127.0.0.1", "Invalid IP Address", 
+                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _settings.PipelineIPAddress = "127.0.0.1";
+            }
+            else
+            {
+                _settings.PipelineIPAddress = _pipelineIpTextBox.Text;
+            }
+            
             _settings.PipelinePort = (int)_pipelinePortNumeric.Value;
-            _settings.PipelineName = _pipelineNameTextBox.Text;
+            
+            // Validate pipe name - remove invalid characters
+            string pipeName = _pipelineNameTextBox.Text;
+            char[] invalidChars = System.IO.Path.GetInvalidFileNameChars();
+            pipeName = new string(pipeName.Where(c => !invalidChars.Contains(c) && c != '\\' && c != '/').ToArray());
+            if (string.IsNullOrWhiteSpace(pipeName))
+            {
+                pipeName = "MSAgentAI";
+            }
+            _settings.PipelineName = pipeName;
 
             _settings.Save();
         }

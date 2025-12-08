@@ -58,6 +58,14 @@ Access via tray menu: **View Log...**
 - **Random Dialog**: Enable random AI-generated dialog
 - **Random Chance**: Set the chance of random dialog (1 in N per second)
 
+### Pipeline Settings
+- **Protocol**: Choose between Named Pipe (local) or TCP Socket (network)
+- **IP Address**: For TCP mode, specify the listening IP (default: 127.0.0.1)
+- **Port**: For TCP mode, specify the port number (default: 8765)
+- **Pipe Name**: For Named Pipe mode, specify the pipe name (default: MSAgentAI)
+
+The pipeline allows external applications to send commands to MSAgent-AI. See [PIPELINE.md](PIPELINE.md) for details and examples.
+
 ### Custom Lines
 Edit the following types of lines the agent will say:
 - **Welcome Lines**: Spoken when the agent first appears

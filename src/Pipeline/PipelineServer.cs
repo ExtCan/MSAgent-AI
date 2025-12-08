@@ -186,11 +186,17 @@ namespace MSAgentAI.Pipeline
         {
             try
             {
-                IPAddress ipAddr = IPAddress.Parse(_ipAddress);
+                // Validate and parse IP address
+                if (!IPAddress.TryParse(_ipAddress, out IPAddress ipAddr))
+                {
+                    Logger.LogError($"TCP Pipeline: Invalid IP address '{_ipAddress}'. Using loopback address.", null);
+                    ipAddr = IPAddress.Loopback;
+                }
+                
                 _tcpListener = new TcpListener(ipAddr, _port);
                 _tcpListener.Start();
                 
-                Logger.Log($"TCP Pipeline: Listening on {_ipAddress}:{_port}");
+                Logger.Log($"TCP Pipeline: Listening on {ipAddr}:{_port}");
                 
                 while (!cancellationToken.IsCancellationRequested)
                 {
@@ -225,6 +231,8 @@ namespace MSAgentAI.Pipeline
         
         private async Task HandleNamedPipeConnectionAsync(NamedPipeServerStream pipeServer, CancellationToken cancellationToken)
         {
+            const int MaxMessageLength = 8192; // 8KB max message size
+            
             try
             {
                 using (var reader = new StreamReader(pipeServer, Encoding.UTF8))
@@ -237,6 +245,14 @@ namespace MSAgentAI.Pipeline
                         
                         if (string.IsNullOrEmpty(line))
                             break;
+                        
+                        // Enforce message size limit to prevent DoS
+                        if (line.Length > MaxMessageLength)
+                        {
+                            Logger.Log($"Pipeline: Command too long ({line.Length} bytes), rejecting");
+                            await writer.WriteLineAsync("ERROR:Command too long");
+                            break;
+                        }
                             
                         Logger.Log($"Pipeline: Received command: {line}");
                         
@@ -261,6 +277,9 @@ namespace MSAgentAI.Pipeline
         
         private async Task HandleTcpConnectionAsync(TcpClient client, CancellationToken cancellationToken)
         {
+            const int MaxMessageLength = 8192; // 8KB max message size
+            const int ReadTimeoutMs = 30000; // 30 second timeout
+            
             try
             {
                 using (client)
@@ -268,6 +287,9 @@ namespace MSAgentAI.Pipeline
                 using (var reader = new StreamReader(stream, Encoding.UTF8))
                 using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                 {
+                    // Set read timeout for the stream
+                    stream.ReadTimeout = ReadTimeoutMs;
+                    
                     // Read commands until the client disconnects
                     while (!cancellationToken.IsCancellationRequested)
                     {
@@ -275,6 +297,14 @@ namespace MSAgentAI.Pipeline
                         
                         if (string.IsNullOrEmpty(line))
                             break;
+                        
+                        // Enforce message size limit to prevent DoS
+                        if (line.Length > MaxMessageLength)
+                        {
+                            Logger.Log($"TCP Pipeline: Command too long ({line.Length} bytes), rejecting");
+                            await writer.WriteLineAsync("ERROR:Command too long");
+                            break;
+                        }
                             
                         Logger.Log($"TCP Pipeline: Received command: {line}");
                         
@@ -288,10 +318,10 @@ namespace MSAgentAI.Pipeline
                 
                 Logger.Log($"TCP Pipeline: Client disconnected");
             }
-            catch (IOException)
+            catch (IOException ex)
             {
-                // Client disconnected
-                Logger.Log("TCP Pipeline: Client disconnected (IO error)");
+                // Client disconnected or timeout
+                Logger.Log($"TCP Pipeline: Client disconnected (IO error: {ex.Message})");
             }
             catch (Exception ex)
             {
