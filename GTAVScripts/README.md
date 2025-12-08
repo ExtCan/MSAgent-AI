@@ -53,6 +53,18 @@ Required for running .NET scripts in GTA V.
 
 ## Installation
 
+### Download Pre-Built (Recommended)
+
+The easiest way to get started:
+
+1. Go to the [Actions tab](../../actions/workflows/build-gtav-script.yml) on GitHub
+2. Click on the latest successful workflow run (green checkmark)
+3. Download the **MSAgentGTAV-Release-Package** artifact
+4. Extract the ZIP file
+5. Copy `MSAgentGTAV.dll` to your GTA V `scripts` folder
+   - Usually: `C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\`
+6. See `INSTALL.txt` in the package for detailed instructions
+
 ### Quick Install
 
 1. **Ensure MSAgent-AI is running** before launching GTA V

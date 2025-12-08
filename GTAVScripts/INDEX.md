@@ -56,7 +56,19 @@ Welcome to the MSAgent-AI GTA V integration! This index will help you find the r
   - Setting descriptions
   - Customization options
 
-### Building from Source
+### Building & Distribution
+
+**Pre-Built Artifacts:**
+- **[GitHub Actions](../../actions/workflows/build-gtav-script.yml)** ⭐
+  - Download pre-built MSAgentGTAV.dll
+  - No compilation needed
+  - Automatically built on every update
+
+**Build Documentation:**
+- **[BUILD_WORKFLOW.md](BUILD_WORKFLOW.md)**
+  - Automated build system explained
+  - How to download artifacts
+  - CI/CD pipeline details
 
 **Development:**
 - **[MSAgentGTAV.csproj](MSAgentGTAV.csproj)**
@@ -77,6 +89,7 @@ Welcome to the MSAgent-AI GTA V integration! This index will help you find the r
 
 | Goal | Go to |
 |------|-------|
+| **Download pre-built DLL** | **[GitHub Actions Artifacts](../../actions/workflows/build-gtav-script.yml)** ⭐ |
 | Install the script for the first time | [QUICKSTART.md](QUICKSTART.md) |
 | Build from source | [README.md](README.md#building-from-source) |
 | Fix a problem | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
@@ -85,6 +98,7 @@ Welcome to the MSAgent-AI GTA V integration! This index will help you find the r
 | Change keybindings | [README.md](README.md#customizing-the-key-binding) |
 | Add new reactions | [ADVANCED.md](ADVANCED.md#adding-new-reaction-types) |
 | Adjust cooldown times | [ADVANCED.md](ADVANCED.md#performance-optimization) |
+| Understand the build system | [BUILD_WORKFLOW.md](BUILD_WORKFLOW.md) |
 | Report a bug | Create an issue on GitHub |
 
 ## 📖 Recommended Reading Order
