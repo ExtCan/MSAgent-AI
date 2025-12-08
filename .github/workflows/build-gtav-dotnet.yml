@@ -87,27 +87,38 @@ jobs:
         
         Write-Host "Building MSAgentGTA.dll..."
         
-        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform="AnyCPU" /verbosity:minimal
+        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform=AnyCPU /verbosity:normal
         
-        Write-Host "Checking build output..."
-        Get-ChildItem -Recurse -Filter "MSAgentGTA.dll" | ForEach-Object { Write-Host "Found DLL at: $($_.FullName)" }
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "::error::MSBuild failed with exit code $LASTEXITCODE"
+          exit 1
+        }
         
-        # Find the DLL wherever it was built
-        $dll = Get-ChildItem -Recurse -Filter "MSAgentGTA.dll" | Where-Object { $_.Directory.Name -eq "Release" } | Select-Object -First 1
+        Write-Host "Build completed, checking for output DLL..."
         
-        if ($dll) {
-          Write-Host "::notice::Build successful! DLL found at $($dll.FullName)"
+        # The project outputs to bin\Release\ so check there first
+        $expectedPath = "bin\Release\MSAgentGTA.dll"
+        
+        if (Test-Path $expectedPath) {
+          Write-Host "::notice::Build successful! DLL found at $expectedPath"
           
           # Copy to root for easier artifact upload
-          Copy-Item -Path $dll.FullName -Destination "..\..\MSAgentGTA.dll" -Force
+          Copy-Item -Path $expectedPath -Destination "..\..\MSAgentGTA.dll" -Force
           
           $fileSize = (Get-Item "..\..\MSAgentGTA.dll").Length
           Write-Host "DLL file size: $fileSize bytes"
         } else {
-          Write-Host "::error::Build completed but DLL not found"
+          Write-Host "::error::Build completed but DLL not found at expected path: $expectedPath"
           Write-Host "Current directory: $(Get-Location)"
-          Write-Host "Directory contents:"
-          Get-ChildItem -Recurse | Select-Object FullName | ForEach-Object { Write-Host $_.FullName }
+          Write-Host "Searching for any MSAgentGTA.dll files..."
+          Get-ChildItem -Recurse -Filter "MSAgentGTA.dll" -ErrorAction SilentlyContinue | ForEach-Object { Write-Host "  Found: $($_.FullName)" }
+          Write-Host ""
+          Write-Host "bin directory contents:"
+          if (Test-Path "bin") {
+            Get-ChildItem -Path "bin" -Recurse | ForEach-Object { Write-Host "  $($_.FullName)" }
+          } else {
+            Write-Host "  bin directory does not exist"
+          }
           exit 1
         }
 
