@@ -74,32 +74,86 @@ jobs:
 
         # Download NativeUI (required for menu system)
         Write-Host "Downloading NativeUI..."
+        $nativeUIDownloaded = $false
+        
         try {
-          $nativeUIUrl = "https://github.com/Guad/NativeUI/releases/latest"
+          Write-Host "Fetching NativeUI release info from GitHub..."
           $nativeUIRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/Guad/NativeUI/releases/latest" -ErrorAction Stop
-          $nativeUIAsset = $nativeUIRelease.assets | Where-Object { $_.name -like "*.dll" } | Select-Object -First 1
+          
+          # Look for zip or dll asset
+          $nativeUIAsset = $nativeUIRelease.assets | Where-Object { $_.name -like "*.zip" -or $_.name -like "*.dll" } | Select-Object -First 1
           
           if ($nativeUIAsset) {
             $nativeUIDownloadUrl = $nativeUIAsset.browser_download_url
-            Write-Host "Found NativeUI release: $($nativeUIRelease.tag_name)"
-          } else {
-            # Fallback to direct download from a known working version
-            Write-Host "Using fallback NativeUI version"
-            $nativeUIDownloadUrl = "https://github.com/Guad/NativeUI/releases/download/v1.9.1/NativeUI.dll"
+            $nativeUIFileName = $nativeUIAsset.name
+            Write-Host "Found NativeUI release: $($nativeUIRelease.tag_name) - Asset: $nativeUIFileName"
+            
+            $nativeUITempPath = "GTAVScripts/lib/$nativeUIFileName"
+            Invoke-WebRequest -Uri $nativeUIDownloadUrl -OutFile $nativeUITempPath -ErrorAction Stop
+            Write-Host "Downloaded NativeUI asset"
+            
+            # If it's a zip, extract it
+            if ($nativeUIFileName -like "*.zip") {
+              Write-Host "Extracting NativeUI from zip..."
+              Expand-Archive -Path $nativeUITempPath -DestinationPath "GTAVScripts/lib/nativeui_temp" -Force
+              $nativeUIDll = Get-ChildItem -Path "GTAVScripts/lib/nativeui_temp" -Filter "NativeUI.dll" -Recurse | Select-Object -First 1
+              if ($nativeUIDll) {
+                Copy-Item $nativeUIDll.FullName -Destination "GTAVScripts/lib/NativeUI.dll" -Force
+                Write-Host "NativeUI.dll extracted successfully"
+                $nativeUIDownloaded = $true
+              }
+              Remove-Item "GTAVScripts/lib/nativeui_temp" -Recurse -Force -ErrorAction SilentlyContinue
+              Remove-Item $nativeUITempPath -Force -ErrorAction SilentlyContinue
+            } else {
+              # It's already a DLL
+              Move-Item $nativeUITempPath -Destination "GTAVScripts/lib/NativeUI.dll" -Force
+              Write-Host "NativeUI.dll downloaded successfully"
+              $nativeUIDownloaded = $true
+            }
           }
-          
-          Invoke-WebRequest -Uri $nativeUIDownloadUrl -OutFile "GTAVScripts/lib/NativeUI.dll" -ErrorAction Stop
-          Write-Host "NativeUI.dll downloaded successfully"
         } catch {
-          Write-Host "Warning: Could not download NativeUI, trying alternative source..."
-          # Alternative: Extract from ScriptHookVDotNet if it's bundled
-          $nativeUI = Get-ChildItem -Path "GTAVScripts/lib" -Filter "NativeUI.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($nativeUI) {
-            Copy-Item $nativeUI.FullName -Destination "GTAVScripts/lib/NativeUI.dll" -Force -ErrorAction SilentlyContinue
-            Write-Host "Found NativeUI.dll in ScriptHookVDotNet package"
-          } else {
-            Write-Warning "NativeUI.dll not found - build may fail if menu functionality is used"
+          Write-Host "Could not download from latest release: $($_.Exception.Message)"
+        }
+        
+        # If download failed, try fallback URLs
+        if (-not $nativeUIDownloaded) {
+          Write-Host "Trying fallback NativeUI sources..."
+          $fallbackUrls = @(
+            "https://github.com/Guad/NativeUI/releases/download/v1.9.1/NativeUI.dll",
+            "https://github.com/Guad/NativeUI/releases/download/1.9/NativeUI.dll"
+          )
+          
+          foreach ($fallbackUrl in $fallbackUrls) {
+            try {
+              Write-Host "Trying: $fallbackUrl"
+              Invoke-WebRequest -Uri $fallbackUrl -OutFile "GTAVScripts/lib/NativeUI.dll" -ErrorAction Stop
+              Write-Host "NativeUI.dll downloaded from fallback source"
+              $nativeUIDownloaded = $true
+              break
+            } catch {
+              Write-Host "Fallback failed: $($_.Exception.Message)"
+            }
           }
+        }
+        
+        # Last resort: check if it's in ScriptHookVDotNet package
+        if (-not $nativeUIDownloaded) {
+          Write-Host "Checking if NativeUI is bundled with ScriptHookVDotNet..."
+          $nativeUI = Get-ChildItem -Path "GTAVScripts/lib" -Filter "NativeUI.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nativeUI -and $nativeUI.FullName -notlike "*\lib\NativeUI.dll") {
+            Copy-Item $nativeUI.FullName -Destination "GTAVScripts/lib/NativeUI.dll" -Force
+            Write-Host "Found NativeUI.dll in ScriptHookVDotNet package"
+            $nativeUIDownloaded = $true
+          }
+        }
+        
+        # Final verification
+        if (Test-Path "GTAVScripts/lib/NativeUI.dll") {
+          Write-Host "SUCCESS: NativeUI.dll is ready at GTAVScripts/lib/NativeUI.dll"
+        } else {
+          Write-Error "FAILED: NativeUI.dll could not be downloaded or found"
+          Write-Host "Build will fail without NativeUI.dll"
+          exit 1
         }
 
 
