@@ -13,7 +13,7 @@ This ScriptHook V script integrates Grand Theft Auto V with MSAgent-AI, allowing
 - **Live Commentary**: Optional 5-minute interval commentary about current gameplay
 
 ### In-Game Menu
-Press **F9** to open the MSAgent Reactions menu with the following options:
+Press **[** (left bracket) to open the MSAgent Reactions menu with the following options:
 - Vehicle Reactions (ON/OFF)
 - Mission Reactions (ON/OFF)
 - Environment Reactions (ON/OFF)
@@ -21,7 +21,7 @@ Press **F9** to open the MSAgent Reactions menu with the following options:
 - General Reactions (ON/OFF)
 - Live Commentary (ON/OFF)
 
-Navigate with **Arrow Keys**, toggle settings with **Enter**, and close with **F9**.
+Navigate with **Arrow Keys**, toggle settings with **Enter**, and close with **[** key.
 
 ## Prerequisites
 
@@ -100,13 +100,14 @@ cl /O2 /EHsc /LD /Fe:MSAgentGTA.asi script.cpp /link /DEF:exports.def ScriptHook
 ## Configuration
 
 ### Default Keybinding
-- **F9** - Opens/closes the reactions menu
+- **[** (left bracket key) - Opens/closes the reactions menu
 
 To change the keybinding, edit the `menuKey` value in the script (requires rebuild):
 ```cpp
 Settings g_Settings;
-// Change VK_F9 to desired key (e.g., VK_F8, VK_F10)
-g_Settings.menuKey = VK_F9;
+// Change 0xDB to desired key code (e.g., VK_F8, VK_F9, VK_F10)
+// 0xDB = '[' key, VK_F9 = F9 key
+g_Settings.menuKey = 0xDB;
 ```
 
 ### Adjusting Commentary Frequency
@@ -161,9 +162,9 @@ When changes are detected, appropriate prompts are sent to MSAgent-AI for natura
 - Try sending a test command: `PING` should return `PONG`
 
 ### Menu Not Appearing
-**Problem**: F9 doesn't open the menu
+**Problem**: [ key doesn't open the menu
 **Solutions**:
-- Check if another script is using F9
+- Check if another script is using the [ key
 - Verify the script is loaded (check ScriptHookV.log)
 - Try a different key binding
 

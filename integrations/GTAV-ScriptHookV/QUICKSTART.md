@@ -20,7 +20,7 @@
 ### Step 3: Launch
 1. **Start MSAgent-AI first** (important!)
 2. Launch GTA V
-3. Once in-game, press **F9** to open the reactions menu
+3. Once in-game, press **[** (left bracket) to open the reactions menu
 4. Configure which reactions you want enabled
 5. Play the game and enjoy your AI companion!
 
@@ -56,7 +56,7 @@
 
 | Key | Action |
 |-----|--------|
-| F9 | Open/Close Menu |
+| [ | Open/Close Menu |
 | Arrow Up/Down | Navigate Menu |
 | Enter | Toggle Setting |
 
@@ -94,7 +94,7 @@
 - Test the connection: the script announces "GTA 5 MSAgent integration is now active!" when loaded
 
 ### "Menu doesn't appear"
-- Make sure you're pressing F9 in-game
+- Make sure you're pressing [ in-game
 - Check if another mod is using the same key
 - Verify script is loaded (check ScriptHookV.log)
 

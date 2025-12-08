@@ -23,7 +23,7 @@
 	2. Place the compiled .asi file in your GTA V directory
 	3. Make sure MSAgent-AI is running
 	
-	Keybinding: F9 to open the menu
+	Keybinding: "[" key to open the menu
 */
 
 #include <windows.h>
@@ -49,7 +49,7 @@ struct Settings {
 	bool characterReactions = true;
 	bool generalReactions = true;
 	bool enableCommentary = true;
-	int menuKey = VK_F9;
+	int menuKey = 0xDB; // '[' key (VK_OEM_4)
 };
 
 Settings g_Settings;
@@ -551,7 +551,7 @@ void DrawMenu() {
 	UI::SET_TEXT_DROPSHADOW(2, 2, 0, 0, 0);
 	UI::SET_TEXT_EDGE(1, 0, 0, 0, 205);
 	UI::_SET_TEXT_ENTRY("STRING");
-	UI::_ADD_TEXT_COMPONENT_STRING("Arrow Keys: Navigate | Enter: Toggle | F9: Close");
+	UI::_ADD_TEXT_COMPONENT_STRING("Arrow Keys: Navigate | Enter: Toggle | [: Close");
 	UI::_DRAW_TEXT(menuX, menuY + lineHeight * 8.5f);
 }
 

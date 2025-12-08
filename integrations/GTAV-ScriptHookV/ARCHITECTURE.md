@@ -37,7 +37,7 @@
 │  │  │  └───────────────────────────────────────────────────┘  │ │ │
 │  │  │                                                          │ │ │
 │  │  │  ┌───────────────────────────────────────────────────┐  │ │ │
-│  │  │  │         In-Game Menu (F9)                         │  │ │ │
+│  │  │  │         In-Game Menu ([)                        │  │ │ │
 │  │  │  │  • Vehicle Reactions      [ON/OFF]                │  │ │ │
 │  │  │  │  • Mission Reactions      [ON/OFF]                │  │ │ │
 │  │  │  │  • Environment Reactions  [ON/OFF]                │  │ │ │
