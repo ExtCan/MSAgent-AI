@@ -10,6 +10,8 @@ A Windows desktop friend application inspired by BonziBUDDY and CyberBuddy, usin
 - **Ollama AI Integration**: Connect to Ollama for dynamic AI-powered conversations with personality prompting
 - **Random Dialog**: Configurable random dialog feature (1 in 9000 chance per second by default) that sends custom prompts to Ollama
 - **User-Friendly GUI**: System tray application with comprehensive settings panel
+- **Named Pipe API**: External applications can send commands through Named Pipes (see [PIPELINE.md](PIPELINE.md))
+- **Game Integration**: GTA V ScriptHook integration for live AI commentary (see [integrations/GTAV-ScriptHookV](integrations/GTAV-ScriptHookV))
 
 ## Requirements
 
@@ -102,8 +104,32 @@ src/
 │   ├── SettingsForm.cs    # Settings dialog
 │   ├── ChatForm.cs        # AI chat dialog
 │   └── InputDialog.cs     # Simple input dialog
+├── Pipeline/
+│   └── PipelineServer.cs  # Named Pipe server for external apps
 └── Program.cs             # Application entry point
+
+integrations/
+└── GTAV-ScriptHookV/      # GTA V integration script
+    ├── script.cpp         # Main ScriptHook V script
+    ├── keyboard.h         # Keyboard input handling
+    ├── MSAgentGTA.vcxproj # Visual Studio project
+    ├── README.md          # Detailed integration docs
+    └── QUICKSTART.md      # Quick installation guide
 ```
+
+## Integrations
+
+### GTA V Live Commentary
+
+The repository includes a ScriptHook V integration that allows MSAgent-AI to react to in-game events in Grand Theft Auto V with AI-powered commentary.
+
+**Features:**
+- Reacts to vehicles, missions, weather, locations, and more
+- In-game menu (F9) to toggle reaction categories
+- Live AI commentary on gameplay events
+- Full integration with the Named Pipe API
+
+**See:** [integrations/GTAV-ScriptHookV/README.md](integrations/GTAV-ScriptHookV/README.md) for installation and usage.
 
 ## License
 

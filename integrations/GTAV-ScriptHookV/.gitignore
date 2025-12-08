@@ -1,0 +1,28 @@
+# Build output
+Debug/
+Release/
+*.asi
+*.obj
+*.pdb
+*.idb
+*.ilk
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+
+# ScriptHook V SDK files (users must download these separately)
+# These are placeholders in the repo, actual SDK files should not be committed
+# lib/ScriptHookV.lib
+# Note: The inc folder has placeholder files committed for reference
+
+# Intermediate build files
+*.log
+*.tlog
+*.lastbuildstate
+*.unsuccessfulbuild
