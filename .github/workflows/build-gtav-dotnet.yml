@@ -105,13 +105,13 @@ jobs:
     - name: Create Build Info
       shell: powershell
       run: |
-        $buildInfo = @"
+        $buildInfo = @'
 MSAgent-AI GTA V Integration (ScriptHookDotNet)
 ================================================
 
-Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
-Commit: $env:GITHUB_SHA
-Branch: $env:GITHUB_REF_NAME
+Build Date: {0}
+Commit: {1}
+Branch: {2}
 Build Status: SUCCESS
 
 Installation Instructions:
@@ -148,13 +148,14 @@ Keybinding:
 Press [ (left bracket) to open/close the menu
 
 For more information, see:
-https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_REF_NAME/integrations/GTAV-ScriptHookDotNet
+https://github.com/{3}/tree/{2}/integrations/GTAV-ScriptHookDotNet
 
 Documentation:
 - README.md - Complete guide
 - QUICKSTART.md - Quick installation
-"@
+'@
         
+        $buildInfo = $buildInfo -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"), $env:GITHUB_SHA, $env:GITHUB_REF_NAME, $env:GITHUB_REPOSITORY
         $buildInfo | Out-File -FilePath "BUILD_INFO.txt" -Encoding UTF8
         Write-Host "Created BUILD_INFO.txt"
 
