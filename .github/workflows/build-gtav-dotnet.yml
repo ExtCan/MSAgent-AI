@@ -87,18 +87,25 @@ jobs:
         
         Write-Host "Building MSAgentGTA.dll..."
         
-        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=bin\Release /verbosity:minimal
+        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform="Any CPU" /verbosity:minimal
         
-        if (Test-Path "bin/Release/MSAgentGTA.dll") {
-          Write-Host "::notice::Build successful! DLL created."
+        Write-Host "Checking build output..."
+        Get-ChildItem -Recurse -Filter "MSAgentGTA.dll" | ForEach-Object { Write-Host "Found DLL at: $($_.FullName)" }
+        
+        $dllPath = "bin\Release\MSAgentGTA.dll"
+        if (Test-Path $dllPath) {
+          Write-Host "::notice::Build successful! DLL created at $dllPath"
           
           # Copy to root for easier artifact upload
-          Copy-Item -Path "bin/Release/MSAgentGTA.dll" -Destination "../../MSAgentGTA.dll" -Force
+          Copy-Item -Path $dllPath -Destination "..\..\MSAgentGTA.dll" -Force
           
-          $fileSize = (Get-Item "../../MSAgentGTA.dll").Length
+          $fileSize = (Get-Item "..\..\MSAgentGTA.dll").Length
           Write-Host "DLL file size: $fileSize bytes"
         } else {
-          Write-Host "::error::Build completed but DLL not found"
+          Write-Host "::error::Build completed but DLL not found at expected path: $dllPath"
+          Write-Host "Current directory: $(Get-Location)"
+          Write-Host "Directory contents:"
+          Get-ChildItem -Recurse | Select-Object FullName | ForEach-Object { Write-Host $_.FullName }
           exit 1
         }
 
