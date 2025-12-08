@@ -59,8 +59,14 @@ jobs:
         # Find and copy the DLL
         $dll = Get-ChildItem -Path "GTAVScripts/lib" -Filter "ScriptHookVDotNet3.dll" -Recurse | Select-Object -First 1
         if ($dll) {
-          Copy-Item $dll.FullName -Destination "GTAVScripts/lib/ScriptHookVDotNet3.dll" -Force
-          Write-Host "ScriptHookVDotNet3.dll found and copied"
+          $targetPath = "GTAVScripts/lib/ScriptHookVDotNet3.dll"
+          # Only copy if source and destination are different
+          if ($dll.FullName -ne (Resolve-Path $targetPath -ErrorAction SilentlyContinue)) {
+            Copy-Item $dll.FullName -Destination $targetPath -Force
+            Write-Host "ScriptHookVDotNet3.dll copied to lib directory"
+          } else {
+            Write-Host "ScriptHookVDotNet3.dll already in correct location"
+          }
         } else {
           Write-Error "ScriptHookVDotNet3.dll not found in archive"
           exit 1
