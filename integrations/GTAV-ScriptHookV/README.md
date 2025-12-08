@@ -266,10 +266,15 @@ The script uses these GTA V native functions:
 
 ## Known Limitations
 
-1. **Character detection**: Character switching detection is simplified and may not work perfectly in all scenarios
-2. **Mission details**: The script can detect mission start/end but not specific mission objectives or names
-3. **AI latency**: Responses may be delayed depending on Ollama processing time
-4. **Online mode**: Script only works in single-player mode (ScriptHook V requirement)
+1. **Vehicle names**: Uses internal game keys (e.g., "ADDER") instead of display names (e.g., "Truffade Adder"). For production use, implement `UI::_GET_LABEL_TEXT()` conversion.
+2. **Zone names**: Currently uses a hardcoded mapping of zone codes to friendly names. The mapping covers 80+ zones but may not be complete for all DLC areas.
+3. **Character detection**: Character switching detection is simplified and may not work perfectly in all scenarios. For accurate detection, use `PLAYER::GET_PLAYER_CHARACTER()` or track Ped model hashes.
+4. **Weather detection**: Simplified weather tracking that may not handle all weather types correctly. Proper implementation should handle hash-to-index conversion.
+5. **Mission details**: The script can detect mission start/end but not specific mission objectives or names.
+6. **AI latency**: Responses may be delayed depending on Ollama processing time.
+7. **Online mode**: Script only works in single-player mode (ScriptHook V requirement).
+
+**Note:** This is a demonstration implementation focused on showcasing the integration pattern. For production use, review the inline comments marked with "NOTE:" for suggested improvements.
 
 ## Contributing
 

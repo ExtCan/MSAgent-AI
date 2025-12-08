@@ -4,6 +4,13 @@
 	This ScriptHook V script integrates GTA V with MSAgent-AI, allowing the MSAgent character
 	to react to in-game events in real-time.
 	
+	NOTE: This is a demonstration/example implementation. Some native function calls are
+	simplified for clarity. For production use, consider:
+	- Using UI::_GET_LABEL_TEXT() for proper localized vehicle/zone names
+	- Using PLAYER::GET_PLAYER_CHARACTER() for accurate character detection
+	- Implementing proper weather hash-to-name conversion
+	- Adding error handling and edge case management
+	
 	Features:
 	- Vehicle reactions (entering, exiting, type, value)
 	- Mission reactions (start, end, objectives)
@@ -144,6 +151,9 @@ std::string GetVehicleClassName(int vehicleClass) {
 }
 
 std::string GetVehicleName(Hash model) {
+	// NOTE: In actual implementation, use UI::_GET_LABEL_TEXT() to convert
+	// the display name key to a user-friendly name
+	// Example: UI::_GET_LABEL_TEXT(VEHICLE::GET_DISPLAY_NAME_FROM_VEHICLE_MODEL(model))
 	const char* displayName = VEHICLE::GET_DISPLAY_NAME_FROM_VEHICLE_MODEL(model);
 	return displayName ? std::string(displayName) : "Unknown Vehicle";
 }
@@ -333,6 +343,8 @@ void CheckEnvironmentChanges() {
 	if (!g_Settings.environmentReactions) return;
 
 	// Check weather changes
+	// NOTE: This is simplified - actual implementation should use proper weather detection
+	// and handle hash-to-index conversion correctly
 	int currentWeather = GAMEPLAY::GET_PREV_WEATHER_TYPE_HASH_NAME();
 	if (currentWeather != g_State.lastWeather && g_State.lastWeather != -1) {
 		std::string weatherName = GetWeatherName(currentWeather);
@@ -373,6 +385,9 @@ void CheckEnvironmentChanges() {
 	Ped playerPed = PLAYER::PLAYER_PED_ID();
 	Vector3 coords = ENTITY::GET_ENTITY_COORDS(playerPed, true);
 	
+	// NOTE: ZONE::GET_NAME_OF_ZONE returns internal codes like "AIRP", "DOWNT"
+	// GetZoneName() function below maps these to friendly names
+	// Alternatively, use UI::_GET_LABEL_TEXT() for proper localized names
 	const char* zoneName = ZONE::GET_NAME_OF_ZONE(coords.x, coords.y, coords.z);
 	std::string currentZone = zoneName ? std::string(zoneName) : "";
 	
@@ -393,10 +408,11 @@ void CheckCharacterChanges() {
 	Ped playerPed = PLAYER::PLAYER_PED_ID();
 	
 	// Check character switch
+	// NOTE: GET_PLAYER_SWITCH_TYPE returns animation type, not character
+	// For accurate character detection, use PLAYER::GET_PLAYER_CHARACTER() or track
+	// the actual Ped model hash to detect Michael/Franklin/Trevor
 	int currentChar = PLAYER::GET_PLAYER_SWITCH_TYPE();
 	if (currentChar != g_State.lastCharacter && g_State.lastCharacter != -1) {
-		// Note: Detecting specific character (Michael/Franklin/Trevor) requires additional natives
-		// For now, we just announce a character switch occurred
 		SendChatCommand("The player just switched to a different character. React to the character switch!");
 		g_State.lastCharacter = currentChar;
 	}
