@@ -32,6 +32,7 @@ namespace MSAgentAI.UI
         private TabPage _voiceTab;
         private TabPage _pronunciationTab;
         private TabPage _ollamaTab;
+        private TabPage _pipelineTab;
         private TabPage _linesTab;
 
         // Agent controls
@@ -96,6 +97,13 @@ namespace MSAgentAI.UI
         private DataGridView _pronunciationGrid;
         private Button _exportDictionaryButton;
         private Button _importDictionaryButton;
+
+        // Pipeline controls
+        private ComboBox _pipelineProtocolComboBox;
+        private TextBox _pipelineIpTextBox;
+        private NumericUpDown _pipelinePortNumeric;
+        private TextBox _pipelineNameTextBox;
+        private Label _pipelineStatusLabel;
 
         // Dialog buttons
         private Button _okButton;
@@ -186,9 +194,10 @@ namespace MSAgentAI.UI
             CreateVoiceTab();
             CreatePronunciationTab();
             CreateOllamaTab();
+            CreatePipelineTab();
             CreateLinesTab();
 
-            _tabControl.TabPages.AddRange(new TabPage[] { _agentTab, _voiceTab, _pronunciationTab, _ollamaTab, _linesTab });
+            _tabControl.TabPages.AddRange(new TabPage[] { _agentTab, _voiceTab, _pronunciationTab, _ollamaTab, _pipelineTab, _linesTab });
 
             // Dialog buttons
             _okButton = new Button
@@ -1014,6 +1023,142 @@ namespace MSAgentAI.UI
             });
         }
 
+        private void CreatePipelineTab()
+        {
+            _pipelineTab = new TabPage("Pipeline");
+
+            var descLabel = new Label
+            {
+                Text = "Configure the communication pipeline for external applications.\nChoose between Named Pipe (local only) or TCP Socket (network).",
+                Location = new Point(15, 15),
+                Size = new Size(570, 40),
+                AutoSize = false
+            };
+
+            var protocolLabel = new Label
+            {
+                Text = "Protocol:",
+                Location = new Point(15, 65),
+                Size = new Size(100, 20)
+            };
+
+            _pipelineProtocolComboBox = new ComboBox
+            {
+                Location = new Point(120, 62),
+                Size = new Size(150, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            _pipelineProtocolComboBox.Items.AddRange(new object[] { "NamedPipe", "TCP" });
+            _pipelineProtocolComboBox.SelectedIndexChanged += OnPipelineProtocolChanged;
+
+            // Named Pipe settings
+            var pipeNameLabel = new Label
+            {
+                Text = "Pipe Name:",
+                Location = new Point(15, 100),
+                Size = new Size(100, 20)
+            };
+
+            _pipelineNameTextBox = new TextBox
+            {
+                Location = new Point(120, 97),
+                Size = new Size(300, 23)
+            };
+
+            var pipeHelpLabel = new Label
+            {
+                Text = "Full path: \\\\.\\pipe\\{PipeName}",
+                Location = new Point(120, 125),
+                Size = new Size(400, 20),
+                ForeColor = System.Drawing.Color.Gray
+            };
+
+            // TCP settings
+            var ipLabel = new Label
+            {
+                Text = "IP Address:",
+                Location = new Point(15, 155),
+                Size = new Size(100, 20)
+            };
+
+            _pipelineIpTextBox = new TextBox
+            {
+                Location = new Point(120, 152),
+                Size = new Size(150, 23)
+            };
+
+            var portLabel = new Label
+            {
+                Text = "Port:",
+                Location = new Point(285, 155),
+                Size = new Size(40, 20)
+            };
+
+            _pipelinePortNumeric = new NumericUpDown
+            {
+                Location = new Point(330, 152),
+                Size = new Size(90, 23),
+                Minimum = 1,
+                Maximum = 65535,
+                Value = 8765
+            };
+
+            var tcpHelpLabel = new Label
+            {
+                Text = "Use 127.0.0.1 for local connections, or actual IP for network access.\nMake sure your firewall allows connections on the configured port.",
+                Location = new Point(120, 180),
+                Size = new Size(470, 35),
+                ForeColor = System.Drawing.Color.Gray,
+                AutoSize = false
+            };
+
+            _pipelineStatusLabel = new Label
+            {
+                Text = "Pipeline server will restart when settings are applied.",
+                Location = new Point(15, 230),
+                Size = new Size(570, 40),
+                ForeColor = System.Drawing.Color.DarkOrange,
+                AutoSize = false
+            };
+
+            var examplesLabel = new Label
+            {
+                Text = "Connection Examples:",
+                Location = new Point(15, 280),
+                Size = new Size(200, 20),
+                Font = new System.Drawing.Font(this.Font, System.Drawing.FontStyle.Bold)
+            };
+
+            var examplesText = new Label
+            {
+                Text = "Named Pipe (Python): win32file.CreateFile(r'\\\\.\\pipe\\MSAgentAI', ...)\n" +
+                       "TCP Socket (Python): socket.connect(('127.0.0.1', 8765))\n" +
+                       "See PIPELINE.md for complete examples in multiple languages.",
+                Location = new Point(15, 305),
+                Size = new Size(570, 60),
+                ForeColor = System.Drawing.Color.Gray,
+                AutoSize = false
+            };
+
+            _pipelineTab.Controls.AddRange(new Control[]
+            {
+                descLabel, protocolLabel, _pipelineProtocolComboBox,
+                pipeNameLabel, _pipelineNameTextBox, pipeHelpLabel,
+                ipLabel, _pipelineIpTextBox, portLabel, _pipelinePortNumeric, tcpHelpLabel,
+                _pipelineStatusLabel, examplesLabel, examplesText
+            });
+        }
+
+        private void OnPipelineProtocolChanged(object sender, EventArgs e)
+        {
+            // Enable/disable controls based on protocol selection
+            bool isTcp = _pipelineProtocolComboBox.SelectedItem?.ToString() == "TCP";
+            
+            _pipelineIpTextBox.Enabled = isTcp;
+            _pipelinePortNumeric.Enabled = isTcp;
+            _pipelineNameTextBox.Enabled = !isTcp;
+        }
+
         private void CreateLinesTab()
         {
             _linesTab = new TabPage("Lines");
@@ -1134,6 +1279,14 @@ namespace MSAgentAI.UI
             _linesTextBoxes["jokes"].Text = string.Join(Environment.NewLine, _settings.Jokes);
             _linesTextBoxes["thoughts"].Text = string.Join(Environment.NewLine, _settings.Thoughts);
             _linesTextBoxes["randomPrompts"].Text = string.Join(Environment.NewLine, _settings.RandomDialogPrompts);
+
+            // Pipeline settings
+            _pipelineProtocolComboBox.SelectedItem = _settings.PipelineProtocol ?? "NamedPipe";
+            _pipelineIpTextBox.Text = _settings.PipelineIPAddress ?? "127.0.0.1";
+            _pipelinePortNumeric.Value = Math.Max(_pipelinePortNumeric.Minimum, 
+                Math.Min(_pipelinePortNumeric.Maximum, _settings.PipelinePort));
+            _pipelineNameTextBox.Text = _settings.PipelineName ?? "MSAgentAI";
+            OnPipelineProtocolChanged(null, EventArgs.Empty); // Update UI based on protocol
         }
 
         private void SaveSettings()
@@ -1198,6 +1351,12 @@ namespace MSAgentAI.UI
             _settings.Jokes = ParseLines(_linesTextBoxes["jokes"].Text);
             _settings.Thoughts = ParseLines(_linesTextBoxes["thoughts"].Text);
             _settings.RandomDialogPrompts = ParseLines(_linesTextBoxes["randomPrompts"].Text);
+
+            // Pipeline settings
+            _settings.PipelineProtocol = _pipelineProtocolComboBox.SelectedItem?.ToString() ?? "NamedPipe";
+            _settings.PipelineIPAddress = _pipelineIpTextBox.Text;
+            _settings.PipelinePort = (int)_pipelinePortNumeric.Value;
+            _settings.PipelineName = _pipelineNameTextBox.Text;
 
             _settings.Save();
         }
