@@ -10,6 +10,8 @@ A Windows desktop friend application inspired by BonziBUDDY and CyberBuddy, usin
 - **Ollama AI Integration**: Connect to Ollama for dynamic AI-powered conversations with personality prompting
 - **Random Dialog**: Configurable random dialog feature (1 in 9000 chance per second by default) that sends custom prompts to Ollama
 - **User-Friendly GUI**: System tray application with comprehensive settings panel
+- **Named Pipe API**: External applications can communicate with the agent (see [PIPELINE.md](PIPELINE.md))
+- **GTA V Integration**: Live commentary script for Grand Theft Auto V (see [GTAVScripts/](GTAVScripts/))
 
 ## Requirements
 
@@ -84,6 +86,22 @@ dotnet build
 3. Use Chat to have conversations with the agent (requires Ollama)
 4. Use Speak menu to make the agent tell jokes, share thoughts, or say custom text
 
+## Integrations
+
+### GTA V Live Commentary
+
+Want MSAgent to commentate on your GTA V gameplay? Check out the **[GTA V Integration](GTAVScripts/README.md)**!
+
+The script provides live reactions to:
+- Vehicles (cars, bikes, boats, planes, helicopters)
+- Missions and events
+- Weather and time changes
+- Locations and zones
+- Player state (health, wanted level, death)
+- Character switching
+
+See **[GTAVScripts/QUICKSTART.md](GTAVScripts/QUICKSTART.md)** for quick installation guide.
+
 ## Project Structure
 
 ```
@@ -102,7 +120,16 @@ src/
 │   ├── SettingsForm.cs    # Settings dialog
 │   ├── ChatForm.cs        # AI chat dialog
 │   └── InputDialog.cs     # Simple input dialog
+├── Pipeline/
+│   └── PipelineServer.cs  # Named pipe server for external apps
 └── Program.cs             # Application entry point
+
+GTAVScripts/
+├── MSAgentGTAV.cs         # GTA V ScriptHookDotNet integration
+├── MSAgentGTAV.csproj     # Project file
+├── README.md              # Full documentation
+├── QUICKSTART.md          # Quick start guide
+└── build.bat              # Build script
 ```
 
 ## License
