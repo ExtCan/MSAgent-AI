@@ -53,9 +53,16 @@ if errorlevel 1 (
     echo.
     echo ERROR: Build failed!
     echo.
-    echo Make sure you have:
-    echo - .NET Framework 4.8 SDK installed
-    echo - MSBuild in your PATH
+    echo Common solutions:
+    echo 1. Install Visual Studio 2019 or later with .NET desktop development
+    echo 2. Install .NET Framework 4.8 SDK from:
+    echo    https://dotnet.microsoft.com/download/dotnet-framework/net48
+    echo 3. Add MSBuild to your PATH, typically located at:
+    echo    C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin
+    echo 4. Or open MSAgentGTAV.csproj in Visual Studio and build there
+    echo.
+    echo If MSBuild is not found, you can also build using Developer Command Prompt
+    echo for Visual Studio (search in Start Menu).
     echo.
     pause
     exit /b 1

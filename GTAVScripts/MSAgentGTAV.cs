@@ -20,8 +20,8 @@ namespace MSAgentGTAV
     {
         // Configuration
         private const string PIPE_NAME = "MSAgentAI";
-        private const int COOLDOWN_MS = 10000; // 10 second cooldown between reactions
-        private const int FAST_COOLDOWN_MS = 3000; // 3 second cooldown for frequent events
+        private int COOLDOWN_MS = 10000; // 10 second cooldown between reactions (configurable)
+        private int FAST_COOLDOWN_MS = 3000; // 3 second cooldown for frequent events (configurable)
         
         // Menu system
         private UIMenu mainMenu;
@@ -51,6 +51,11 @@ namespace MSAgentGTAV
         private Model lastCharacterModel;
         private bool playerWasDead = false;
         private Hash lastMissionHash = 0;
+        
+        // Cached character hashes for performance
+        private readonly int michaelHash = PedHash.Michael.GetHashCode();
+        private readonly int franklinHash = PedHash.Franklin.GetHashCode();
+        private readonly int trevorHash = PedHash.Trevor.GetHashCode();
         
         // Vehicle value tracking
         private Dictionary<VehicleHash, int> vehicleValues = new Dictionary<VehicleHash, int>();
@@ -384,19 +389,23 @@ namespace MSAgentGTAV
             if (!reactToMissions) return;
             
             // Check if player is in a mission
-            if (Function.Call<bool>(Hash.GET_MISSION_FLAG))
+            // Note: Mission detection in GTA V is complex and limited by ScriptHookV API
+            // This is a simplified approach that detects when mission flag changes
+            bool isInMission = Function.Call<bool>(Hash.GET_MISSION_FLAG);
+            
+            // Track mission state changes
+            if (isInMission && lastMissionHash == 0)
             {
-                // Get current mission (this is simplified - actual mission detection is complex)
-                Hash currentMission = (Hash)Function.Call<int>(Hash._GET_LABEL_TEXT, "CELL_1");
-                
-                if (currentMission != lastMissionHash && currentMission != 0)
+                if (CanReact(ref lastReactionTime, COOLDOWN_MS))
                 {
-                    if (CanReact(ref lastReactionTime, COOLDOWN_MS))
-                    {
-                        lastMissionHash = currentMission;
-                        SendChatPrompt("A mission started or progressed. Comment on the mission action!");
-                    }
+                    lastMissionHash = 1; // Simple flag to indicate mission is active
+                    SendChatPrompt("A mission started or progressed. Comment on the mission action!");
                 }
+            }
+            else if (!isInMission && lastMissionHash != 0)
+            {
+                lastMissionHash = 0; // Mission ended
+                // Note: We don't react to mission end to avoid spam
             }
         }
         
@@ -412,10 +421,10 @@ namespace MSAgentGTAV
         
         private string GetCharacterName(Model model)
         {
-            // GTA V protagonists
-            if (model.Hash == PedHash.Michael.GetHashCode()) return "Michael De Santa";
-            if (model.Hash == PedHash.Franklin.GetHashCode()) return "Franklin Clinton";
-            if (model.Hash == PedHash.Trevor.GetHashCode()) return "Trevor Philips";
+            // GTA V protagonists (using cached hashes for performance)
+            if (model.Hash == michaelHash) return "Michael De Santa";
+            if (model.Hash == franklinHash) return "Franklin Clinton";
+            if (model.Hash == trevorHash) return "Trevor Philips";
             
             return "a different character";
         }
