@@ -11,3 +11,7 @@ obj/
 
 # Build artifacts
 *.log
+
+# Dependencies (downloaded by CI)
+lib/
+*.zip
