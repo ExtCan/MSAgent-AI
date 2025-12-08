@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
@@ -15,12 +16,15 @@ namespace MSAgentGTAV
 {
     /// <summary>
     /// MSAgent-AI integration for GTA V
-    /// Live commentary and reactions to in-game events via Named Pipe communication
+    /// Live commentary and reactions to in-game events via TCP or Named Pipe communication
     /// </summary>
     public class MSAgentGTAV : Script
     {
-        // Configuration
-        private const string PIPE_NAME = "MSAgentAI";
+        // Configuration (loaded from INI file)
+        private string protocol = "TCP"; // TCP or NamedPipe
+        private string ipAddress = "127.0.0.1";
+        private int port = 8765;
+        private string pipeName = "MSAgentAI";
         private int COOLDOWN_MS = 10000; // 10 second cooldown between reactions (configurable)
         private int FAST_COOLDOWN_MS = 3000; // 3 second cooldown for frequent events (configurable)
         
@@ -63,6 +67,7 @@ namespace MSAgentGTAV
         
         public MSAgentGTAV()
         {
+            LoadConfiguration();
             InitializeVehicleValues();
             SetupMenu();
             
@@ -71,6 +76,85 @@ namespace MSAgentGTAV
             Aborted += OnAborted;
             
             SendToAgent("SPEAK:GTA V integration loaded! I'm ready to commentate!");
+        }
+        
+        private void LoadConfiguration()
+        {
+            try
+            {
+                string iniPath = "scripts\\MSAgentGTAV.ini";
+                if (!File.Exists(iniPath))
+                {
+                    // Use defaults if INI doesn't exist
+                    return;
+                }
+                
+                foreach (string line in File.ReadAllLines(iniPath))
+                {
+                    if (line.StartsWith(";") || line.StartsWith("[") || string.IsNullOrWhiteSpace(line))
+                        continue;
+                    
+                    string[] parts = line.Split(new[] { '=' }, 2);
+                    if (parts.Length != 2)
+                        continue;
+                    
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+                    
+                    switch (key)
+                    {
+                        case "Protocol":
+                            protocol = value;
+                            break;
+                        case "IPAddress":
+                            ipAddress = value;
+                            break;
+                        case "Port":
+                            if (int.TryParse(value, out int p))
+                                port = p;
+                            break;
+                        case "PipeName":
+                            pipeName = value;
+                            break;
+                        case "SlowCooldown":
+                            if (int.TryParse(value, out int sc))
+                                COOLDOWN_MS = sc;
+                            break;
+                        case "FastCooldown":
+                            if (int.TryParse(value, out int fc))
+                                FAST_COOLDOWN_MS = fc;
+                            break;
+                        case "ReactToVehicles":
+                            reactToVehicles = bool.Parse(value);
+                            break;
+                        case "ReactToMissions":
+                            reactToMissions = bool.Parse(value);
+                            break;
+                        case "ReactToWeather":
+                            reactToWeather = bool.Parse(value);
+                            break;
+                        case "ReactToTime":
+                            reactToTime = bool.Parse(value);
+                            break;
+                        case "ReactToLocation":
+                            reactToLocation = bool.Parse(value);
+                            break;
+                        case "ReactToPlayerState":
+                            reactToPlayerState = bool.Parse(value);
+                            break;
+                        case "ReactToCharacterSwitch":
+                            reactToCharacterSwitch = bool.Parse(value);
+                            break;
+                        case "ReactToVehicleValue":
+                            reactToVehicleValue = bool.Parse(value);
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                GTA.UI.Notification.Show($"~r~MSAgent Config Error: {ex.Message}");
+            }
         }
         
         private void InitializeVehicleValues()
@@ -447,19 +531,47 @@ namespace MSAgentGTAV
             {
                 try
                 {
-                    using (var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
+                    if (protocol.Equals("TCP", StringComparison.OrdinalIgnoreCase))
                     {
-                        client.Connect(1000); // 1 second timeout
-                        
-                        using (var reader = new StreamReader(client))
-                        using (var writer = new StreamWriter(client) { AutoFlush = true })
+                        // TCP Socket connection
+                        using (var client = new TcpClient())
                         {
-                            writer.WriteLine(command);
-                            string response = reader.ReadLine();
+                            client.ConnectAsync(ipAddress, port).Wait(1000); // 1 second timeout
                             
-                            if (response != null && response.StartsWith("ERROR"))
+                            if (!client.Connected)
+                                return; // Silently fail if not connected
+                            
+                            using (var stream = client.GetStream())
+                            using (var reader = new StreamReader(stream, Encoding.UTF8))
+                            using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                             {
-                                GTA.UI.Notification.Show($"~r~MSAgent Error: {response}");
+                                writer.WriteLine(command);
+                                string response = reader.ReadLine();
+                                
+                                if (response != null && response.StartsWith("ERROR"))
+                                {
+                                    GTA.UI.Notification.Show($"~r~MSAgent Error: {response}");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // Named Pipe connection
+                        using (var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut))
+                        {
+                            client.Connect(1000); // 1 second timeout
+                            
+                            using (var reader = new StreamReader(client))
+                            using (var writer = new StreamWriter(client) { AutoFlush = true })
+                            {
+                                writer.WriteLine(command);
+                                string response = reader.ReadLine();
+                                
+                                if (response != null && response.StartsWith("ERROR"))
+                                {
+                                    GTA.UI.Notification.Show($"~r~MSAgent Error: {response}");
+                                }
                             }
                         }
                     }
@@ -470,6 +582,8 @@ namespace MSAgentGTAV
                 }
                 catch (Exception ex)
                 {
+                    // Only show error on first connection attempt, then silently fail
+                    // This prevents spam if MSAgent-AI isn't running
                     GTA.UI.Notification.Show($"~r~MSAgent connection error: {ex.Message}");
                 }
             });

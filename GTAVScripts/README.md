@@ -123,19 +123,77 @@ msbuild MSAgentGTAV.csproj /p:Configuration=Release
 copy bin\Release\MSAgentGTAV.dll "%GTAV_DIR%\scripts\"
 ```
 
+## Configuration
+
+The script can be configured using the `MSAgentGTAV.ini` file in your `scripts` folder.
+
+### Configuration File (`MSAgentGTAV.ini`)
+
+Copy the `MSAgentGTAV.ini` file to your GTA V `scripts` folder alongside the DLL.
+
+```ini
+[Connection]
+; Protocol: NamedPipe or TCP
+Protocol=TCP
+
+; TCP settings (used when Protocol=TCP)
+IPAddress=127.0.0.1
+Port=8765
+
+; Named Pipe settings (used when Protocol=NamedPipe)
+PipeName=MSAgentAI
+
+[Cooldowns]
+; Cooldown between reactions in milliseconds
+SlowCooldown=10000
+FastCooldown=3000
+
+[Features]
+; Enable/disable reaction categories
+ReactToVehicles=true
+ReactToMissions=true
+ReactToWeather=true
+ReactToTime=true
+ReactToLocation=true
+ReactToPlayerState=true
+ReactToCharacterSwitch=true
+ReactToVehicleValue=true
+
+[Menu]
+; F9 key to toggle menu
+MenuKey=F9
+```
+
+### Connection Modes
+
+**TCP Mode (Default - Recommended):**
+- Works locally and over network
+- More flexible than Named Pipes
+- Can connect to MSAgent-AI on another computer
+- Configure MSAgent-AI to listen on TCP (Settings → Pipeline → Protocol: TCP)
+
+**Named Pipe Mode:**
+- Local machine only
+- Legacy mode (use if you prefer)
+- Configure MSAgent-AI to use Named Pipe mode (Settings → Pipeline → Protocol: NamedPipe)
+
+**Important:** The script's protocol setting must match MSAgent-AI's pipeline protocol!
+
 ## Usage
 
 ### First Launch
 
-1. **Start MSAgent-AI** - The desktop application must be running first
-2. **Configure MSAgent-AI** (optional):
-   - Set your preferred character
-   - Configure voice settings
-   - Enable Ollama chat for AI-powered responses
-3. **Launch GTA V**
-4. Wait for the game to load
-5. You should see: "GTA V integration loaded!" notification
-6. MSAgent should say: "GTA V integration loaded! I'm ready to commentate!"
+1. **Copy MSAgentGTAV.ini** to your GTA V `scripts` folder (alongside MSAgentGTAV.dll)
+2. **Configure connection** in MSAgentGTAV.ini to match your MSAgent-AI setup
+3. **Start MSAgent-AI** - The desktop application must be running first
+4. **Configure MSAgent-AI Pipeline**:
+   - Open Settings → Pipeline tab
+   - Set Protocol to match your INI file (TCP or NamedPipe)
+   - If using TCP: verify IP address and port match
+5. **Launch GTA V**
+6. Wait for the game to load
+7. You should see: "GTA V integration loaded!" notification
+8. MSAgent should say: "GTA V integration loaded! I'm ready to commentate!"
 
 ### In-Game Controls
 
@@ -156,27 +214,27 @@ The in-game menu allows you to toggle different reaction types:
 
 Each option can be toggled on/off independently without restarting the game.
 
-### Customizing the Key Binding
-
-To change the menu key from F9 to something else:
-
-1. Open `MSAgentGTAV.cs` in a text editor
-2. Find the line: `if (Game.IsKeyPressed(System.Windows.Forms.Keys.F9))`
-3. Replace `F9` with your preferred key (e.g., `F8`, `F10`, `Insert`, etc.)
-4. Rebuild the script
-
-Available keys: F1-F12, Insert, Delete, Home, End, PageUp, PageDown, etc.
-
 ## How It Works
 
-The script monitors various game events and sends them to MSAgent-AI through a Named Pipe connection (`\\.\pipe\MSAgentAI`).
+The script monitors various game events and sends them to MSAgent-AI through either a TCP socket connection or Named Pipe (configured in `MSAgentGTAV.ini`).
+
+**Default Connection (TCP):**
+- Protocol: TCP
+- Address: 127.0.0.1
+- Port: 8765
+
+**Alternative (Named Pipe):**
+- Pipe: `\\.\pipe\MSAgentAI`
 
 ### Communication Protocol
 
-The script uses these pipe commands:
+The script uses these commands:
 
 - `SPEAK:text` - Make MSAgent speak directly
 - `CHAT:prompt` - Send a prompt to Ollama AI for intelligent responses
+- `ANIMATION:name` - Play a specific animation
+- `HIDE` / `SHOW` - Hide or show the agent
+- `POKE` - Trigger random AI dialog
 
 ### Examples of Reactions
 

@@ -55,7 +55,33 @@ Use this checklist to verify your installation is correct:
 
 **If this fails:** Fix MSAgent-AI installation first before proceeding.
 
-### Step 2: Test Pipe Communication
+### Step 2: Test Communication (TCP or Named Pipe)
+
+#### TCP Mode Test (Default)
+
+Open PowerShell and run:
+
+```powershell
+$client = New-Object System.Net.Sockets.TcpClient
+$client.Connect("127.0.0.1", 8765)
+$stream = $client.GetStream()
+$writer = New-Object System.IO.StreamWriter($stream)
+$reader = New-Object System.IO.StreamReader($stream)
+$writer.AutoFlush = $true
+$writer.WriteLine("PING")
+$response = $reader.ReadLine()
+Write-Host "Response: $response"
+$client.Close()
+```
+
+Expected output: `Response: PONG`
+
+**If this fails:**
+- Check MSAgent-AI Settings → Pipeline → Protocol is set to "TCP"
+- Verify Port is 8765
+- Check firewall isn't blocking the connection
+
+#### Named Pipe Mode Test (Alternative)
 
 Open PowerShell and run:
 
@@ -73,7 +99,9 @@ $pipe.Close()
 
 Expected output: `Response: PONG`
 
-**If this fails:** MSAgent-AI pipe server is not running correctly.
+**If this fails:**
+- Check MSAgent-AI Settings → Pipeline → Protocol is set to "NamedPipe"
+- MSAgent-AI pipe server is not running correctly
 
 ### Step 3: Test GTA V with ScriptHookV
 
