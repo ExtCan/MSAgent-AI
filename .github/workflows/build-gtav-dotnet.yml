@@ -67,15 +67,18 @@ jobs:
       shell: powershell
       run: |
         # Update the .csproj to use the local lib folder reference
-        $projFile = "integrations/GTAV-ScriptHookDotNet/MSAgentGTA.csproj"
+        cd integrations/GTAV-ScriptHookDotNet
+        $projFile = "MSAgentGTA.csproj"
         $content = Get-Content $projFile -Raw
         
-        # Replace the reference path to use lib folder
-        $content = $content -replace '<HintPath>\$\(GTAV\)\\ScriptHookVDotNet3.dll</HintPath>', '<HintPath>lib\ScriptHookVDotNet3.dll</HintPath>'
+        # Replace the reference path to use lib folder (escape the special characters properly)
+        $content = $content -replace '<HintPath>\$\(GTAV\)\\ScriptHookVDotNet3\.dll</HintPath>', '<HintPath>lib\ScriptHookVDotNet3.dll</HintPath>'
         
         Set-Content -Path $projFile -Value $content
         
         Write-Host "Updated project reference to use lib folder"
+        Write-Host "Reference section after update:"
+        Select-String -Path $projFile -Pattern "ScriptHookVDotNet3" -Context 1,1
 
     - name: Restore NuGet packages
       run: nuget restore integrations/GTAV-ScriptHookDotNet/MSAgentGTA.csproj -PackagesDirectory packages
