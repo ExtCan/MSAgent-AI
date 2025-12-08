@@ -1,6 +1,26 @@
 # Quick Start Guide - GTA V MSAgent Integration
 
-## For Users (Quick Install)
+## Building the ASI File (Required)
+
+⚠️ **You must build the ASI file yourself** - there is no pre-built version due to ScriptHook V SDK licensing.
+
+### Quick Build Steps (5 minutes)
+
+1. **Download ScriptHook V SDK** from http://www.dev-c.com/gtav/scripthookv/
+
+2. **Copy SDK files to project:**
+   ```
+   SDK/inc/*               → integrations/GTAV-ScriptHookV/inc/
+   SDK/lib/ScriptHookV.lib → integrations/GTAV-ScriptHookV/lib/
+   ```
+
+3. **Build in Visual Studio:**
+   - Open `integrations/GTAV-ScriptHookV/MSAgentGTA.sln`
+   - Configuration: **Release**, Platform: **x86**
+   - Press **Ctrl+Shift+B** to build
+   - ASI file created at: `Release/MSAgentGTA.asi`
+
+## Installation
 
 ### Step 1: Install Prerequisites
 1. **Install ScriptHook V**:
@@ -13,8 +33,8 @@
    - Test that it works by using the Speak menu
 
 ### Step 2: Install the Script
-1. Download the pre-built `MSAgentGTA.asi` file
-2. Copy it to your GTA V installation directory (same folder as `GTA5.exe`)
+1. Copy the compiled `MSAgentGTA.asi` from `Release/` folder
+2. Paste it to your GTA V installation directory (same folder as `GTA5.exe`)
 3. That's it!
 
 ### Step 3: Launch
@@ -23,30 +43,6 @@
 3. Once in-game, press **[** (left bracket) to open the reactions menu
 4. Configure which reactions you want enabled
 5. Play the game and enjoy your AI companion!
-
-## For Developers (Building from Source)
-
-### Step 1: Get Required Tools
-1. Install Visual Studio 2019 or later with C++ development tools
-2. Download ScriptHook V SDK from http://www.dev-c.com/gtav/scripthookv/
-
-### Step 2: Setup Project
-1. Extract ScriptHook V SDK
-2. Copy from SDK to project:
-   ```
-   SDK/inc/main.h      → integrations/GTAV-ScriptHookV/inc/main.h
-   SDK/inc/natives.h   → integrations/GTAV-ScriptHookV/inc/natives.h
-   SDK/inc/types.h     → integrations/GTAV-ScriptHookV/inc/types.h
-   SDK/inc/enums.h     → integrations/GTAV-ScriptHookV/inc/enums.h
-   SDK/lib/ScriptHookV.lib → integrations/GTAV-ScriptHookV/lib/ScriptHookV.lib
-   ```
-
-### Step 3: Build
-1. Open `integrations/GTAV-ScriptHookV/MSAgentGTA.sln` in Visual Studio
-2. Select **Release** configuration
-3. Select **x86** platform (important!)
-4. Build Solution (Ctrl+Shift+B)
-5. Output will be in `Release/MSAgentGTA.asi`
 
 ### Step 4: Install & Test
 1. Copy `Release/MSAgentGTA.asi` to your GTA V directory

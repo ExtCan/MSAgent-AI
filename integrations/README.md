@@ -16,19 +16,25 @@ A complete ScriptHook V script that provides live AI commentary for Grand Theft 
 - Mission tracking and announcements
 - Character health and status monitoring
 - Wanted level reactions
-- In-game menu for configuration (F9 key)
+- In-game menu for configuration ([ key)
 - Toggleable reaction categories
 - Live commentary mode
 
 **Requirements:**
 - GTA V (PC version)
-- ScriptHook V
+- ScriptHook V and SDK
 - MSAgent-AI running
-- Visual Studio (for building from source)
+- Visual Studio 2019+ (to build the ASI)
+
+**Getting Started:**
+1. Download ScriptHook V SDK
+2. Build the ASI file (takes ~30 seconds)
+3. Install to GTA V directory
+4. See [Quick Start Guide](GTAV-ScriptHookV/QUICKSTART.md) for details
 
 **Documentation:**
 - [Full README](GTAV-ScriptHookV/README.md) - Complete documentation
-- [Quick Start Guide](GTAV-ScriptHookV/QUICKSTART.md) - Installation steps
+- [Quick Start Guide](GTAV-ScriptHookV/QUICKSTART.md) - Build and installation steps
 
 ## How Integrations Work
 

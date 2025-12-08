@@ -39,27 +39,43 @@ Navigate with **Arrow Keys**, toggle settings with **Enter**, and close with **[
 
 ## Installation
 
-### Option 1: Pre-built from GitHub Actions (Recommended if available)
-1. Install ScriptHook V by copying `ScriptHookV.dll` and `dinput8.dll` to your GTA V directory
-2. Go to the [Actions tab](../../actions/workflows/build-gtav.yml) in this repository
-3. Find the latest successful workflow run
-4. Download the `MSAgentGTA-*` artifact
-5. Extract and copy `MSAgentGTA.asi` to your GTA V directory
-6. Launch MSAgent-AI first
-7. Launch GTA V
+⚠️ **IMPORTANT: You must build the ASI file yourself** - see Building section below.
 
-**Note:** The automated build may fail if the ScriptHook V SDK cannot be downloaded automatically. In that case, use Option 2 to build manually.
+### Step 1: Build the ASI File
 
-### Option 2: Build from Source
-1. Download ScriptHook V SDK from http://www.dev-c.com/gtav/scripthookv/
-2. Extract the SDK and copy the `inc` folder contents to `integrations/GTAV-ScriptHookV/inc/`
-3. Copy `SDK/lib/ScriptHookV.lib` to `integrations/GTAV-ScriptHookV/lib/`
-4. Open the Visual Studio solution (`MSAgentGTA.sln`)
-5. Build the project in Release mode (x86)
-6. Copy the resulting `MSAgentGTA.asi` to your GTA V directory
-7. Install ScriptHook V runtime (ScriptHookV.dll and dinput8.dll) in your GTA V directory
-8. Launch MSAgent-AI first
-9. Launch GTA V
+Since the ScriptHook V SDK cannot be redistributed, you need to build the ASI file yourself:
+
+1. **Download ScriptHook V SDK** from http://www.dev-c.com/gtav/scripthookv/
+
+2. **Extract and copy SDK files:**
+   - Copy `SDK/inc/*` to `integrations/GTAV-ScriptHookV/inc/`
+   - Copy `SDK/lib/ScriptHookV.lib` to `integrations/GTAV-ScriptHookV/lib/`
+
+3. **Open in Visual Studio:**
+   - Open `MSAgentGTA.sln` in Visual Studio 2019 or later
+   - Make sure you have "Desktop development with C++" workload installed
+
+4. **Build the project:**
+   - Select **Release** configuration
+   - Select **x86** platform
+   - Build > Build Solution (or press Ctrl+Shift+B)
+   - The ASI file will be created at: `Release/MSAgentGTA.asi`
+
+**Build time: ~30 seconds**
+
+### Step 2: Install ScriptHook V Runtime
+
+1. Install ScriptHook V by copying `ScriptHookV.dll` and `dinput8.dll` to your GTA V directory (same folder as GTA5.exe)
+
+### Step 3: Install MSAgentGTA.asi
+
+1. Copy the compiled `MSAgentGTA.asi` to your GTA V directory
+
+### Step 4: Launch
+
+1. Start MSAgent-AI application
+2. Launch GTA V
+3. Press **[** (left bracket) in-game to open the menu
 
 ## Building the Script
 
