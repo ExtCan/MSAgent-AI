@@ -1,0 +1,13 @@
+# Build results
+bin/
+obj/
+*.dll
+*.pdb
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build artifacts
+*.log
