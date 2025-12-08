@@ -26,13 +26,58 @@ Named pipes only work for local processes on the same machine.
 
 Default connection:
 ```
-IP: 127.0.0.1
+IP: 127.0.0.1 (localhost only)
 Port: 8765
 ```
 
+### IP Address Settings
+
+**IMPORTANT for LAN/Network access:**
+
+- **`127.0.0.1`** - Accepts connections ONLY from localhost (same computer)
+- **`0.0.0.0`** - Accepts connections from ANY network interface (LAN, Wi-Fi, Internet)
+- **Specific IP** (e.g., `192.168.1.100`) - Binds to a specific network interface
+
+**For LAN access, you MUST use `0.0.0.0`!**
+
+### Setting Up LAN Access
+
+1. **Open MSAgent-AI Settings**
+   - Go to Settings → Pipeline tab
+   - Set Protocol to "TCP"
+   - Set IP Address to "0.0.0.0" ⚠️ CRITICAL for LAN!
+   - Set Port to "8765"
+   - Click Apply
+
+2. **Configure Windows Firewall**
+   - Open Windows Defender Firewall
+   - Click "Advanced settings"
+   - Click "Inbound Rules" → "New Rule"
+   - Select "Port" → TCP → Specific local ports: 8765
+   - Allow the connection
+   - Apply to all profiles (Domain, Private, Public)
+   - Name it "MSAgent-AI TCP Pipeline"
+
+   Or run this command as Administrator:
+   ```cmd
+   netsh advfirewall firewall add rule name="MSAgent-AI TCP Pipeline" dir=in action=allow protocol=TCP localport=8765
+   ```
+
+3. **Find Your IP Address**
+   - Open Command Prompt
+   - Run: `ipconfig`
+   - Look for "IPv4 Address" under your active network adapter
+   - Example: `192.168.1.100`
+
+4. **Test the Connection**
+   From another machine on your network:
+   ```python
+   python test_lan_connection.py 192.168.1.100
+   ```
+
 TCP sockets can connect from:
 - Local machine (127.0.0.1 or localhost)
-- Remote machines on the network (use actual IP address)
+- Remote machines on the network (when IP is set to 0.0.0.0)
 - Internet (if firewall allows and IP is accessible)
 
 ## Protocol
@@ -303,6 +348,82 @@ sendCommand('SPEAK:Hello from remote!', '192.168.1.100', 8765);
 ### Remote Monitoring
 - Monitor servers from your desktop: Connect from remote machines to trigger alerts
 - Multi-machine coordination: Have agents on different computers communicate status
+
+## Troubleshooting
+
+### TCP Connection Issues
+
+**Problem: "Connection refused" or "Cannot connect"**
+
+1. **Check MSAgent-AI is running**
+   - Look for MSAgent-AI in system tray
+   - If not running, start the application
+
+2. **Verify TCP mode is enabled**
+   - Open Settings → Pipeline tab
+   - Confirm Protocol is set to "TCP" (not "NamedPipe")
+   - Click Apply if you made changes
+
+3. **Check IP address configuration**
+   - **For localhost only**: Use `127.0.0.1`
+   - **For LAN access**: Use `0.0.0.0` ⚠️ CRITICAL!
+   - Common mistake: Using `127.0.0.1` for LAN (this won't work!)
+
+4. **Verify port number**
+   - Default is 8765
+   - Make sure client uses same port as server
+
+5. **Check firewall settings**
+   - Windows Firewall must allow TCP port 8765
+   - Run as Administrator: `netsh advfirewall firewall add rule name="MSAgent-AI" dir=in action=allow protocol=TCP localport=8765`
+
+6. **Test with diagnostic tool**
+   ```bash
+   python test_lan_connection.py YOUR_IP_ADDRESS
+   ```
+
+**Problem: "Timeout" after connecting**
+
+- Server accepted connection but didn't respond
+- Check MSAgent-AI logs (`MSAgentAI.log`)
+- Verify command format (must end with `\n`)
+- Try: `echo "PING" | nc YOUR_IP 8765`
+
+**Problem: Works on localhost but not from LAN**
+
+- **IP address MUST be `0.0.0.0`**, not `127.0.0.1`!
+- Check firewall on server machine
+- Check network connectivity: `ping YOUR_IP`
+- Verify both machines are on same network/VLAN
+
+### Named Pipe Issues
+
+**Problem: "Pipe not found"**
+
+- Ensure MSAgent-AI is running
+- Verify Protocol is set to "NamedPipe"
+- Check pipe name matches (default: `MSAgentAI`)
+- Named pipes only work on same Windows machine
+
+### General Debug Steps
+
+1. **Check logs**: `MSAgentAI.log` in application folder
+2. **Test with PING**: Simplest command to verify connectivity
+3. **Try localhost first**: Test with `127.0.0.1` before LAN
+4. **Use diagnostic tools**: Python test scripts provided
+5. **Restart application**: After changing settings, restart MSAgent-AI
+
+### Quick LAN Setup Checklist
+
+- [ ] MSAgent-AI is running
+- [ ] Settings → Pipeline → Protocol = "TCP"
+- [ ] Settings → Pipeline → IP Address = "0.0.0.0" ⚠️
+- [ ] Settings → Pipeline → Port = 8765
+- [ ] Clicked "Apply" in Settings
+- [ ] Windows Firewall allows port 8765
+- [ ] Found server IP with `ipconfig`
+- [ ] Can ping server from client: `ping SERVER_IP`
+- [ ] Test script runs successfully: `python test_lan_connection.py SERVER_IP`
 
 ## Notes
 - The pipeline server starts automatically when MSAgent-AI launches

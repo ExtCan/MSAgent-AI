@@ -1105,9 +1105,12 @@ namespace MSAgentAI.UI
 
             var tcpHelpLabel = new Label
             {
-                Text = "Use 127.0.0.1 for local connections, or actual IP for network access.\nMake sure your firewall allows connections on the configured port.",
+                Text = "• 127.0.0.1 = Local connections only\n" +
+                       "• 0.0.0.0 = Accept from any network interface (LAN/Internet)\n" +
+                       "• Specific IP = Bind to one network interface\n" +
+                       "⚠ For LAN access, use 0.0.0.0 and configure your firewall!",
                 Location = new Point(120, 180),
-                Size = new Size(470, 35),
+                Size = new Size(470, 60),
                 ForeColor = System.Drawing.Color.Gray,
                 AutoSize = false
             };
@@ -1115,7 +1118,7 @@ namespace MSAgentAI.UI
             _pipelineStatusLabel = new Label
             {
                 Text = "Pipeline server will restart when settings are applied.",
-                Location = new Point(15, 230),
+                Location = new Point(15, 250),
                 Size = new Size(570, 40),
                 ForeColor = System.Drawing.Color.DarkOrange,
                 AutoSize = false
@@ -1124,7 +1127,7 @@ namespace MSAgentAI.UI
             var examplesLabel = new Label
             {
                 Text = "Connection Examples:",
-                Location = new Point(15, 280),
+                Location = new Point(15, 295),
                 Size = new Size(200, 20),
                 Font = new System.Drawing.Font(this.Font, System.Drawing.FontStyle.Bold)
             };
@@ -1134,7 +1137,7 @@ namespace MSAgentAI.UI
                 Text = "Named Pipe (Python): win32file.CreateFile(r'\\\\.\\pipe\\MSAgentAI', ...)\n" +
                        "TCP Socket (Python): socket.connect(('127.0.0.1', 8765))\n" +
                        "See PIPELINE.md for complete examples in multiple languages.",
-                Location = new Point(15, 305),
+                Location = new Point(15, 320),
                 Size = new Size(570, 60),
                 ForeColor = System.Drawing.Color.Gray,
                 AutoSize = false
