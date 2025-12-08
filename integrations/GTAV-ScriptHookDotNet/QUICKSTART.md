@@ -23,11 +23,15 @@
 
 ### Step 3: Install the Script
 
-**Option A: Pre-built DLL (Recommended)**
-1. Download `MSAgentGTA.dll` from releases
-2. Create a `scripts` folder in your GTA V directory if it doesn't exist
-3. Copy `MSAgentGTA.dll` to the `scripts` folder
-4. That's it!
+**Option A: Download Pre-built DLL from GitHub Actions (Recommended)**
+1. Go to the [Actions tab](../../actions/workflows/build-gtav-dotnet.yml)
+2. Click on the latest successful workflow run
+3. Scroll down to "Artifacts" section
+4. Download `MSAgentGTA-ScriptHookDotNet-*` artifact (it's a ZIP file)
+5. Extract the ZIP file
+6. Create a `scripts` folder in your GTA V directory if it doesn't exist
+7. Copy `MSAgentGTA.dll` from the extracted files to the `scripts` folder
+8. That's it!
 
 **Option B: Build from Source (Optional)**
 1. Open `MSAgentGTA.csproj` in Visual Studio

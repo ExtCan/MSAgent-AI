@@ -46,15 +46,23 @@ Navigate with **Arrow Keys**, toggle settings with **Enter**, and close with **[
    - `ScriptHookVDotNet3.dll`
    - `ScriptHookV.dll` (included with SHVDN)
 
-### Step 2: Build or Download the Script
+### Step 2: Get the Script
 
-**Option A: Use Pre-built DLL (Easiest)**
-1. Download `MSAgentGTA.dll` from the [Releases](../../releases) page
-2. Copy to `GTA V/scripts/` folder (create the folder if it doesn't exist)
+**Option A: Download Pre-built DLL from GitHub Actions (Easiest)**
+1. Go to the [Actions tab](../../actions/workflows/build-gtav-dotnet.yml)
+2. Find the latest successful workflow run
+3. Download the `MSAgentGTA-ScriptHookDotNet-*` artifact
+4. Extract `MSAgentGTA.dll` from the artifact
+5. Copy to `GTA V/scripts/` folder (create the folder if it doesn't exist)
 
-**Option B: Build from Source**
+**Option B: Download from Releases**
+1. Check the [Releases](../../releases) page for pre-built versions
+2. Download `MSAgentGTA.dll`
+3. Copy to `GTA V/scripts/` folder
+
+**Option C: Build from Source**
 1. Open `MSAgentGTA.csproj` in Visual Studio
-2. Make sure you have ScriptHookDotNet v3 referenced (see Building section below)
+2. Add reference to `ScriptHookVDotNet3.dll` from your GTA V installation
 3. Build in Release mode (Ctrl+Shift+B)
 4. Copy `bin/Release/MSAgentGTA.dll` to `GTA V/scripts/` folder
 

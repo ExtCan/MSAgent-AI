@@ -1,0 +1,193 @@
+name: Build GTA V ScriptHookDotNet Integration
+
+on:
+  push:
+    branches: [ main, master, 'copilot/**' ]
+    paths:
+      - 'integrations/GTAV-ScriptHookDotNet/**'
+      - '.github/workflows/build-gtav-dotnet.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'integrations/GTAV-ScriptHookDotNet/**'
+      - '.github/workflows/build-gtav-dotnet.yml'
+  workflow_dispatch:
+
+jobs:
+  build-gtav-dotnet-script:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET Framework
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    - name: Download ScriptHookVDotNet v3
+      shell: powershell
+      run: |
+        Write-Host "Downloading ScriptHookVDotNet v3..."
+        
+        # Download latest release of ScriptHookVDotNet
+        $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet-v3.6.0.zip"
+        $output = "SHVDN.zip"
+        
+        try {
+          Invoke-WebRequest -Uri $url -OutFile $output -UseBasicParsing
+          Write-Host "Downloaded ScriptHookVDotNet"
+          
+          # Extract
+          Expand-Archive -Path $output -DestinationPath "SHVDN" -Force
+          
+          # Find the DLL
+          $dll = Get-ChildItem -Path "SHVDN" -Recurse -Filter "ScriptHookVDotNet3.dll" | Select-Object -First 1
+          
+          if ($dll) {
+            Write-Host "Found ScriptHookVDotNet3.dll at: $($dll.FullName)"
+            
+            # Create a lib directory for the reference
+            New-Item -Path "integrations/GTAV-ScriptHookDotNet/lib" -ItemType Directory -Force
+            Copy-Item -Path $dll.FullName -Destination "integrations/GTAV-ScriptHookDotNet/lib/ScriptHookVDotNet3.dll" -Force
+            
+            Write-Host "Copied ScriptHookVDotNet3.dll to lib folder"
+          } else {
+            Write-Host "::error::ScriptHookVDotNet3.dll not found in downloaded archive"
+            exit 1
+          }
+        } catch {
+          Write-Host "::error::Failed to download ScriptHookVDotNet: $_"
+          exit 1
+        }
+
+    - name: Update Project Reference
+      shell: powershell
+      run: |
+        # Update the .csproj to use the local lib folder reference
+        $projFile = "integrations/GTAV-ScriptHookDotNet/MSAgentGTA.csproj"
+        $content = Get-Content $projFile -Raw
+        
+        # Replace the reference path to use lib folder
+        $content = $content -replace '<HintPath>\$\(GTAV\)\\ScriptHookVDotNet3.dll</HintPath>', '<HintPath>lib\ScriptHookVDotNet3.dll</HintPath>'
+        
+        Set-Content -Path $projFile -Value $content
+        
+        Write-Host "Updated project reference to use lib folder"
+
+    - name: Restore NuGet packages
+      run: nuget restore integrations/GTAV-ScriptHookDotNet/MSAgentGTA.csproj -PackagesDirectory packages
+
+    - name: Build MSAgentGTA
+      shell: powershell
+      run: |
+        cd integrations/GTAV-ScriptHookDotNet
+        
+        Write-Host "Building MSAgentGTA.dll..."
+        
+        msbuild MSAgentGTA.csproj /p:Configuration=Release /p:Platform="Any CPU" /p:OutputPath=bin\Release /verbosity:minimal
+        
+        if (Test-Path "bin/Release/MSAgentGTA.dll") {
+          Write-Host "::notice::Build successful! DLL created."
+          
+          # Copy to root for easier artifact upload
+          Copy-Item -Path "bin/Release/MSAgentGTA.dll" -Destination "../../MSAgentGTA.dll" -Force
+          
+          $fileSize = (Get-Item "../../MSAgentGTA.dll").Length
+          Write-Host "DLL file size: $fileSize bytes"
+        } else {
+          Write-Host "::error::Build completed but DLL not found"
+          exit 1
+        }
+
+    - name: Create Build Info
+      shell: powershell
+      run: |
+        $buildInfo = @"
+MSAgent-AI GTA V Integration (ScriptHookDotNet)
+================================================
+
+Build Date: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC")
+Commit: $env:GITHUB_SHA
+Branch: $env:GITHUB_REF_NAME
+Build Status: SUCCESS
+
+Installation Instructions:
+==========================
+
+1. Install ScriptHookVDotNet v3:
+   - Download from: https://github.com/scripthookvdotnet/scripthookvdotnet/releases
+   - Extract ScriptHookVDotNet3.dll to your GTA V directory
+
+2. Install MSAgentGTA.dll:
+   - Create a 'scripts' folder in your GTA V directory (if it doesn't exist)
+   - Copy MSAgentGTA.dll to GTA V/scripts/
+
+3. Make sure MSAgent-AI is running:
+   - Launch the MSAgent-AI application
+   - Configure your character and Ollama AI settings
+
+4. Launch GTA V:
+   - Start the game
+   - Press [ (left bracket) in-game to open the menu
+   - Configure which reactions you want enabled
+
+Features:
+=========
+- Vehicle reactions (entering/exiting vehicles with AI commentary)
+- Environment monitoring (weather, time of day, location)
+- Character health monitoring
+- Wanted level reactions
+- In-game menu with 6 toggleable reaction categories
+- Live commentary mode (5-minute intervals)
+
+Keybinding:
+===========
+Press [ (left bracket) to open/close the menu
+
+For more information, see:
+https://github.com/$env:GITHUB_REPOSITORY/tree/$env:GITHUB_REF_NAME/integrations/GTAV-ScriptHookDotNet
+
+Documentation:
+- README.md - Complete guide
+- QUICKSTART.md - Quick installation
+"@
+        
+        $buildInfo | Out-File -FilePath "BUILD_INFO.txt" -Encoding UTF8
+        Write-Host "Created BUILD_INFO.txt"
+
+    - name: Upload MSAgentGTA Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MSAgentGTA-ScriptHookDotNet-${{ github.sha }}
+        path: |
+          MSAgentGTA.dll
+          BUILD_INFO.txt
+          integrations/GTAV-ScriptHookDotNet/README.md
+          integrations/GTAV-ScriptHookDotNet/QUICKSTART.md
+        retention-days: 90
+
+    - name: Build Summary
+      shell: powershell
+      run: |
+        Write-Host "=========================================" -ForegroundColor Green
+        Write-Host "GTA V ScriptHookDotNet Build Complete!" -ForegroundColor Green
+        Write-Host "=========================================" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "✓ MSAgentGTA.dll successfully built" -ForegroundColor Green
+        Write-Host ""
+        Write-Host "Download the artifact from the Actions tab:" -ForegroundColor Cyan
+        Write-Host "  Artifact name: MSAgentGTA-ScriptHookDotNet-$env:GITHUB_SHA" -ForegroundColor Yellow
+        Write-Host ""
+        Write-Host "The artifact contains:" -ForegroundColor White
+        Write-Host "  - MSAgentGTA.dll (the compiled script)" -ForegroundColor White
+        Write-Host "  - BUILD_INFO.txt (installation instructions)" -ForegroundColor White
+        Write-Host "  - Documentation files (README.md, QUICKSTART.md)" -ForegroundColor White
+        Write-Host ""
+        Write-Host "Installation is simple:" -ForegroundColor Cyan
+        Write-Host "  1. Install ScriptHookVDotNet v3" -ForegroundColor White
+        Write-Host "  2. Copy MSAgentGTA.dll to GTA V/scripts/" -ForegroundColor White
+        Write-Host "  3. Run MSAgent-AI" -ForegroundColor White
+        Write-Host "  4. Launch GTA V and press [ in-game" -ForegroundColor White

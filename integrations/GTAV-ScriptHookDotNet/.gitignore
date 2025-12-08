@@ -16,5 +16,6 @@ obj/
 # NuGet
 packages/
 
-# ScriptHookDotNet reference (users must download separately)
+# ScriptHookDotNet reference (downloaded by CI or referenced from GTA V installation)
+lib/
 # Note: Users should reference ScriptHookVDotNet3.dll from their GTA V installation
