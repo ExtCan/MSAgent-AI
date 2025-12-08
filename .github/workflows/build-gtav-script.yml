@@ -193,6 +193,7 @@ jobs:
         name: MSAgentGTAV-Script
         path: |
           GTAVScripts/bin/Release/MSAgentGTAV.dll
+          GTAVScripts/MSAgentGTAV.ini
           GTAVScripts/README.md
           GTAVScripts/QUICKSTART.md
         retention-days: 90
@@ -207,6 +208,9 @@ jobs:
 
         # Copy the DLL
         Copy-Item "GTAVScripts/bin/Release/MSAgentGTAV.dll" "release-package/"
+        
+        # Copy configuration file
+        Copy-Item "GTAVScripts/MSAgentGTAV.ini" "release-package/"
 
         # Copy documentation
         Copy-Item "GTAVScripts/README.md" "release-package/"
@@ -227,7 +231,7 @@ jobs:
         Add-Content -Path "release-package/INSTALL.txt" -Value "   - ScriptHookVDotNet v3.x - https://github.com/scripthookvdotnet/scripthookvdotnet/releases" -Encoding UTF8
         Add-Content -Path "release-package/INSTALL.txt" -Value "   - MSAgent-AI application running" -Encoding UTF8
         Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
-        Add-Content -Path "release-package/INSTALL.txt" -Value "2. Copy MSAgentGTAV.dll to your GTA V scripts folder:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "2. Copy MSAgentGTAV.dll and MSAgentGTAV.ini to your GTA V scripts folder:" -Encoding UTF8
         Add-Content -Path "release-package/INSTALL.txt" -Value "   - Default location: C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\" -Encoding UTF8
         Add-Content -Path "release-package/INSTALL.txt" -Value "   - Create the 'scripts' folder if it doesn't exist" -Encoding UTF8
         Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8

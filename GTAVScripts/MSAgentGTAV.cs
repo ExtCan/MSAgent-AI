@@ -42,6 +42,7 @@ namespace MSAgentGTAV
         private bool reactToPlayerState = true;
         private bool reactToCharacterSwitch = true;
         private bool reactToVehicleValue = true;
+        private bool enableLogging = false;
         
         // State tracking
         private Vehicle lastVehicle;
@@ -148,6 +149,9 @@ namespace MSAgentGTAV
                         case "ReactToVehicleValue":
                             reactToVehicleValue = bool.Parse(value);
                             break;
+                        case "EnableLogging":
+                            enableLogging = bool.Parse(value);
+                            break;
                     }
                 }
             }
@@ -242,6 +246,10 @@ namespace MSAgentGTAV
                 "Enable/disable reactions based on vehicle worth");
             mainMenu.AddItem(vehicleValueToggle);
             
+            var loggingToggle = new UIMenuCheckboxItem("Enable Logging", enableLogging,
+                "Enable/disable logging to scripts\\MSAgentGTAV.log");
+            mainMenu.AddItem(loggingToggle);
+            
             // Handle checkbox changes
             mainMenu.OnCheckboxChange += (sender, item, checked_) =>
             {
@@ -253,6 +261,11 @@ namespace MSAgentGTAV
                 else if (item == playerStateToggle) reactToPlayerState = checked_;
                 else if (item == characterToggle) reactToCharacterSwitch = checked_;
                 else if (item == vehicleValueToggle) reactToVehicleValue = checked_;
+                else if (item == loggingToggle) 
+                {
+                    enableLogging = checked_;
+                    LogMessage($"Logging {(checked_ ? "enabled" : "disabled")}");
+                }
                 
                 Notification.Show($"~g~MSAgent: {item.Text} " + (checked_ ? "enabled" : "disabled"));
             };
@@ -527,6 +540,8 @@ namespace MSAgentGTAV
         
         private void SendToAgent(string command)
         {
+            LogMessage($"Sending to agent: {command}");
+            
             Task.Run(() =>
             {
                 try
@@ -539,7 +554,10 @@ namespace MSAgentGTAV
                             client.ConnectAsync(ipAddress, port).Wait(1000); // 1 second timeout
                             
                             if (!client.Connected)
+                            {
+                                LogMessage($"TCP connection failed to {ipAddress}:{port}");
                                 return; // Silently fail if not connected
+                            }
                             
                             using (var stream = client.GetStream())
                             using (var reader = new StreamReader(stream, Encoding.UTF8))
@@ -547,6 +565,7 @@ namespace MSAgentGTAV
                             {
                                 writer.WriteLine(command);
                                 string response = reader.ReadLine();
+                                LogMessage($"Response from agent: {response}");
                                 
                                 if (response != null && response.StartsWith("ERROR"))
                                 {
@@ -567,6 +586,7 @@ namespace MSAgentGTAV
                             {
                                 writer.WriteLine(command);
                                 string response = reader.ReadLine();
+                                LogMessage($"Response from agent: {response}");
                                 
                                 if (response != null && response.StartsWith("ERROR"))
                                 {
@@ -576,14 +596,16 @@ namespace MSAgentGTAV
                         }
                     }
                 }
-                catch (TimeoutException)
+                catch (TimeoutException ex)
                 {
                     // MSAgent not running, silently ignore
+                    LogMessage($"Connection timeout: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
                     // Only show error on first connection attempt, then silently fail
                     // This prevents spam if MSAgent-AI isn't running
+                    LogMessage($"Connection error: {ex.Message}");
                     GTA.UI.Notification.Show($"~r~MSAgent connection error: {ex.Message}");
                 }
             });
@@ -594,8 +616,27 @@ namespace MSAgentGTAV
             SendToAgent($"CHAT:{prompt}");
         }
         
+        private void LogMessage(string message)
+        {
+            if (!enableLogging)
+                return;
+                
+            try
+            {
+                string logPath = "scripts\\MSAgentGTAV.log";
+                string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+                string logEntry = $"[{timestamp}] {message}\n";
+                File.AppendAllText(logPath, logEntry);
+            }
+            catch
+            {
+                // Silently ignore logging errors
+            }
+        }
+        
         private void OnAborted(object sender, EventArgs e)
         {
+            LogMessage("Script aborted - shutting down");
             SendToAgent("SPEAK:GTA V integration stopped. See you later!");
         }
     }
