@@ -72,19 +72,51 @@ jobs:
           exit 1
         }
 
+        # Download NativeUI (required for menu system)
+        Write-Host "Downloading NativeUI..."
+        try {
+          $nativeUIUrl = "https://github.com/Guad/NativeUI/releases/latest"
+          $nativeUIRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/Guad/NativeUI/releases/latest" -ErrorAction Stop
+          $nativeUIAsset = $nativeUIRelease.assets | Where-Object { $_.name -like "*.dll" } | Select-Object -First 1
+          
+          if ($nativeUIAsset) {
+            $nativeUIDownloadUrl = $nativeUIAsset.browser_download_url
+            Write-Host "Found NativeUI release: $($nativeUIRelease.tag_name)"
+          } else {
+            # Fallback to direct download from a known working version
+            Write-Host "Using fallback NativeUI version"
+            $nativeUIDownloadUrl = "https://github.com/Guad/NativeUI/releases/download/v1.9.1/NativeUI.dll"
+          }
+          
+          Invoke-WebRequest -Uri $nativeUIDownloadUrl -OutFile "GTAVScripts/lib/NativeUI.dll" -ErrorAction Stop
+          Write-Host "NativeUI.dll downloaded successfully"
+        } catch {
+          Write-Host "Warning: Could not download NativeUI, trying alternative source..."
+          # Alternative: Extract from ScriptHookVDotNet if it's bundled
+          $nativeUI = Get-ChildItem -Path "GTAVScripts/lib" -Filter "NativeUI.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nativeUI) {
+            Copy-Item $nativeUI.FullName -Destination "GTAVScripts/lib/NativeUI.dll" -Force -ErrorAction SilentlyContinue
+            Write-Host "Found NativeUI.dll in ScriptHookVDotNet package"
+          } else {
+            Write-Warning "NativeUI.dll not found - build may fail if menu functionality is used"
+          }
+        }
+
+
     - name: Update project reference path
       shell: powershell
       run: |
-        # Update the .csproj to use the downloaded DLL
+        # Update the .csproj to use the downloaded DLLs from lib directory
         $csprojPath = "GTAVScripts/MSAgentGTAV.csproj"
         $content = Get-Content $csprojPath -Raw
 
-        # Replace the GTAV_DIR reference with our lib directory
+        # Replace the GTAV_DIR references with our lib directory
         $content = $content -replace '\$\(GTAV_DIR\)\\ScriptHookVDotNet3\.dll', 'lib\ScriptHookVDotNet3.dll'
+        $content = $content -replace '\$\(GTAV_DIR\)\\NativeUI\.dll', 'lib\NativeUI.dll'
 
         Set-Content $csprojPath $content
 
-        Write-Host "Updated project file to use lib/ScriptHookVDotNet3.dll"
+        Write-Host "Updated project file to use lib/ScriptHookVDotNet3.dll and lib/NativeUI.dll"
 
     - name: Build GTA V Script
       run: msbuild GTAVScripts/MSAgentGTAV.csproj /p:Configuration=Release /p:Platform="AnyCPU" /p:OutputPath=bin/Release/

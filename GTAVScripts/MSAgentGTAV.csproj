@@ -47,6 +47,12 @@
       <HintPath>$(GTAV_DIR)\ScriptHookVDotNet3.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <!-- NativeUI for menu system -->
+    <!-- Download from: https://github.com/Guad/NativeUI/releases -->
+    <Reference Include="NativeUI">
+      <HintPath>$(GTAV_DIR)\NativeUI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MSAgentGTAV.cs" />
