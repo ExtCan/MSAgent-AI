@@ -1,14 +1,13 @@
-# GTA V MSAgent-AI Integration
+# GTA V MSAgent-AI Integration (ScriptHookDotNet)
 
-This ScriptHook V script integrates Grand Theft Auto V with MSAgent-AI, allowing your Microsoft Agent character to react to in-game events in real-time through AI-powered commentary.
+This ScriptHookDotNet script integrates Grand Theft Auto V with MSAgent-AI, allowing your Microsoft Agent character to react to in-game events in real-time through AI-powered commentary.
 
 ## Features
 
 ### Real-Time Reactions
 - **Vehicle Events**: Reacts when you enter/exit vehicles, with commentary based on vehicle type, class, and estimated value
-- **Mission Events**: Announces mission starts and endings
 - **Environment Changes**: Comments on weather changes, time of day transitions, and location changes
-- **Character Events**: Reacts to character switches, health changes, and player deaths
+- **Character Events**: Reacts to health changes and low health warnings
 - **General Events**: Responds to wanted level changes and provides periodic commentary
 - **Live Commentary**: Optional 5-minute interval commentary about current gameplay
 
@@ -27,57 +26,61 @@ Navigate with **Arrow Keys**, toggle settings with **Enter**, and close with **[
 
 ### Required Software
 1. **Grand Theft Auto V** (obviously!)
-2. **ScriptHook V** - Download from: http://www.dev-c.com/gtav/scripthookv/
+2. **ScriptHookDotNet v3** - Download from: https://github.com/scripthookvdotnet/scripthookvdotnet/releases
 3. **MSAgent-AI** - Must be running before launching GTA V
    - Download from the main repository
    - Ensure Ollama is set up for AI responses
 
 ### Development Requirements (for building)
-1. **Visual Studio 2019 or later** with C++ development tools
-2. **ScriptHook V SDK** - Download from: http://www.dev-c.com/gtav/scripthookv/
-3. **Windows 10/11 SDK**
+1. **Visual Studio 2019 or later** with .NET Framework 4.8
+2. **ScriptHookDotNet v3** - Download from: https://github.com/scripthookvdotnet/scripthookvdotnet/releases
 
 ## Installation
 
-⚠️ **IMPORTANT: You must build the ASI file yourself** - see Building section below.
+⚠️ **Much simpler than ScriptHook V!** No SDK required, just copy the DLL.
 
-### Step 1: Build the ASI File
+### Step 1: Install ScriptHookDotNet Runtime
 
-Since the ScriptHook V SDK cannot be redistributed, you need to build the ASI file yourself:
+1. Download ScriptHookDotNet v3 from https://github.com/scripthookvdotnet/scripthookvdotnet/releases
+2. Extract and copy these files to your GTA V directory:
+   - `ScriptHookVDotNet3.dll`
+   - `ScriptHookV.dll` (included with SHVDN)
 
-1. **Download ScriptHook V SDK** from http://www.dev-c.com/gtav/scripthookv/
+### Step 2: Build or Download the Script
 
-2. **Extract and copy SDK files:**
-   - Copy `SDK/inc/*` to `integrations/GTAV-ScriptHookV/inc/`
-   - Copy `SDK/lib/ScriptHookV.lib` to `integrations/GTAV-ScriptHookV/lib/`
+**Option A: Use Pre-built DLL (Easiest)**
+1. Download `MSAgentGTA.dll` from the [Releases](../../releases) page
+2. Copy to `GTA V/scripts/` folder (create the folder if it doesn't exist)
 
-3. **Open in Visual Studio:**
-   - Open `MSAgentGTA.sln` in Visual Studio 2019 or later
-   - Make sure you have "Desktop development with C++" workload installed
+**Option B: Build from Source**
+1. Open `MSAgentGTA.csproj` in Visual Studio
+2. Make sure you have ScriptHookDotNet v3 referenced (see Building section below)
+3. Build in Release mode (Ctrl+Shift+B)
+4. Copy `bin/Release/MSAgentGTA.dll` to `GTA V/scripts/` folder
 
-4. **Build the project:**
-   - Select **Release** configuration
-   - Select **x86** platform
-   - Build > Build Solution (or press Ctrl+Shift+B)
-   - The ASI file will be created at: `Release/MSAgentGTA.asi`
-
-**Build time: ~30 seconds**
-
-### Step 2: Install ScriptHook V Runtime
-
-1. Install ScriptHook V by copying `ScriptHookV.dll` and `dinput8.dll` to your GTA V directory (same folder as GTA5.exe)
-
-### Step 3: Install MSAgentGTA.asi
-
-1. Copy the compiled `MSAgentGTA.asi` to your GTA V directory
-
-### Step 4: Launch
+### Step 3: Launch
 
 1. Start MSAgent-AI application
 2. Launch GTA V
 3. Press **[** (left bracket) in-game to open the menu
 
 ## Building the Script
+
+### Quick Build (30 seconds)
+
+1. **Download ScriptHookDotNet v3** from https://github.com/scripthookvdotnet/scripthookvdotnet/releases
+
+2. **Set up the reference:**
+   - Either set the `GTAV` environment variable to your GTA V path
+   - Or manually add reference to `ScriptHookVDotNet3.dll` in the project
+
+3. **Build in Visual Studio:**
+   - Open `MSAgentGTA.csproj`
+   - Configuration: **Release**, Platform: **Any CPU**
+   - Press **Ctrl+Shift+B** to build
+   - DLL created at: `bin/Release/MSAgentGTA.dll`
+
+**Much easier than ScriptHook V** - No complex SDK setup, just a standard C# project!
 
 ### Setting Up the Build Environment
 

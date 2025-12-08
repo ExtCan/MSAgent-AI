@@ -1,48 +1,54 @@
-# Quick Start Guide - GTA V MSAgent Integration
+# Quick Start Guide - GTA V MSAgent Integration (ScriptHookDotNet)
 
-## Building the ASI File (Required)
+## Installation (5 minutes)
 
-⚠️ **You must build the ASI file yourself** - there is no pre-built version due to ScriptHook V SDK licensing.
+⚠️ **Much simpler than ScriptHook V!** No SDK needed, just copy DLL files.
 
-### Quick Build Steps (5 minutes)
+### Step 1: Install ScriptHookDotNet
 
-1. **Download ScriptHook V SDK** from http://www.dev-c.com/gtav/scripthookv/
+1. **Download ScriptHookDotNet v3**:
+   - Get it from: https://github.com/scripthookvdotnet/scripthookvdotnet/releases
+   - Download the latest release ZIP
 
-2. **Copy SDK files to project:**
-   ```
-   SDK/inc/*               → integrations/GTAV-ScriptHookV/inc/
-   SDK/lib/ScriptHookV.lib → integrations/GTAV-ScriptHookV/lib/
-   ```
+2. **Extract to GTA V directory:**
+   - Copy `ScriptHookVDotNet3.dll` to your GTA V root folder
+   - Copy `ScriptHookV.dll` to your GTA V root folder (included with SHVDN)
 
-3. **Build in Visual Studio:**
-   - Open `integrations/GTAV-ScriptHookV/MSAgentGTA.sln`
-   - Configuration: **Release**, Platform: **x86**
-   - Press **Ctrl+Shift+B** to build
-   - ASI file created at: `Release/MSAgentGTA.asi`
-
-## Installation
-
-### Step 1: Install Prerequisites
-1. **Install ScriptHook V**:
-   - Download from: http://www.dev-c.com/gtav/scripthookv/
-   - Extract `ScriptHookV.dll` and `dinput8.dll` to your GTA V directory
+### Step 2: Install Prerequisites
    
-2. **Setup MSAgent-AI**:
+1. **Setup MSAgent-AI**:
    - Make sure MSAgent-AI is installed and working
    - Configure your character and Ollama AI settings
    - Test that it works by using the Speak menu
 
-### Step 2: Install the Script
-1. Copy the compiled `MSAgentGTA.asi` from `Release/` folder
-2. Paste it to your GTA V installation directory (same folder as `GTA5.exe`)
-3. That's it!
+### Step 3: Install the Script
 
-### Step 3: Launch
+**Option A: Pre-built DLL (Recommended)**
+1. Download `MSAgentGTA.dll` from releases
+2. Create a `scripts` folder in your GTA V directory if it doesn't exist
+3. Copy `MSAgentGTA.dll` to the `scripts` folder
+4. That's it!
+
+**Option B: Build from Source (Optional)**
+1. Open `MSAgentGTA.csproj` in Visual Studio
+2. Add reference to `ScriptHookVDotNet3.dll` from your GTA V directory
+3. Build (Ctrl+Shift+B)
+4. Copy `bin/Release/MSAgentGTA.dll` to `GTA V/scripts/` folder
+
+### Step 4: Launch
 1. **Start MSAgent-AI first** (important!)
 2. Launch GTA V
 3. Once in-game, press **[** (left bracket) to open the reactions menu
 4. Configure which reactions you want enabled
 5. Play the game and enjoy your AI companion!
+
+## Why ScriptHookDotNet is Better
+
+✅ **No SDK required** - Just reference a single DLL  
+✅ **C# instead of C++** - Easier to read and modify  
+✅ **Standard .NET project** - Familiar build process  
+✅ **Better APIs** - Modern, well-documented  
+✅ **Faster development** - No manual header/lib setup
 
 ### Step 4: Install & Test
 1. Copy `Release/MSAgentGTA.asi` to your GTA V directory

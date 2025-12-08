@@ -4,16 +4,15 @@ This directory contains integrations that allow MSAgent-AI to interact with exte
 
 ## Available Integrations
 
-### GTA V ScriptHook V Integration
-**Location:** `GTAV-ScriptHookV/`
+### GTA V ScriptHookDotNet Integration
+**Location:** `GTAV-ScriptHookDotNet/`
 
-A complete ScriptHook V script that provides live AI commentary for Grand Theft Auto V.
+A C# ScriptHookDotNet script that provides live AI commentary for Grand Theft Auto V.
 
 **Key Features:**
 - Real-time reactions to in-game events
 - Vehicle detection and commentary (cars, bikes, boats, planes, helicopters)
 - Environment monitoring (weather, time, location)
-- Mission tracking and announcements
 - Character health and status monitoring
 - Wanted level reactions
 - In-game menu for configuration ([ key)
@@ -22,19 +21,25 @@ A complete ScriptHook V script that provides live AI commentary for Grand Theft 
 
 **Requirements:**
 - GTA V (PC version)
-- ScriptHook V and SDK
+- ScriptHookDotNet v3
 - MSAgent-AI running
-- Visual Studio 2019+ (to build the ASI)
+- Visual Studio 2019+ (to build from source - optional)
 
 **Getting Started:**
-1. Download ScriptHook V SDK
-2. Build the ASI file (takes ~30 seconds)
-3. Install to GTA V directory
-4. See [Quick Start Guide](GTAV-ScriptHookV/QUICKSTART.md) for details
+1. Download ScriptHookDotNet v3
+2. Copy DLL to GTA V/scripts folder (pre-built available)
+3. Launch and press [ in-game
+4. See [Quick Start Guide](GTAV-ScriptHookDotNet/QUICKSTART.md) for details
+
+**Advantages over ScriptHook V:**
+- ✅ No SDK required
+- ✅ C# instead of C++
+- ✅ Easier to build and modify
+- ✅ Pre-built DLL can be distributed
 
 **Documentation:**
-- [Full README](GTAV-ScriptHookV/README.md) - Complete documentation
-- [Quick Start Guide](GTAV-ScriptHookV/QUICKSTART.md) - Build and installation steps
+- [Full README](GTAV-ScriptHookDotNet/README.md) - Complete documentation
+- [Quick Start Guide](GTAV-ScriptHookDotNet/QUICKSTART.md) - Installation steps
 
 ## How Integrations Work
 
