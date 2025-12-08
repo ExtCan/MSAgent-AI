@@ -395,9 +395,8 @@ void CheckCharacterChanges() {
 	// Check character switch
 	int currentChar = PLAYER::GET_PLAYER_SWITCH_TYPE();
 	if (currentChar != g_State.lastCharacter && g_State.lastCharacter != -1) {
-		const char* charNames[] = {"Michael", "Franklin", "Trevor"};
-		int charIndex = 0; // Simplified - would need proper detection
-		
+		// Note: Detecting specific character (Michael/Franklin/Trevor) requires additional natives
+		// For now, we just announce a character switch occurred
 		SendChatCommand("The player just switched to a different character. React to the character switch!");
 		g_State.lastCharacter = currentChar;
 	}
@@ -410,11 +409,9 @@ void CheckCharacterChanges() {
 	float maxHealth = ENTITY::GET_ENTITY_MAX_HEALTH(playerPed);
 	float healthPercent = (health / maxHealth) * 100.0f;
 	
+	// Check for low health (not already low)
 	if (healthPercent < 30.0f && g_State.lastHealth >= 30.0f) {
 		SendChatCommand("The player's health is really low! Say something concerned!");
-	}
-	else if (ENTITY::IS_ENTITY_DEAD(playerPed) && !ENTITY::IS_ENTITY_DEAD(PLAYER::PLAYER_PED_ID())) {
-		SendChatCommand("The player just died! React to it!");
 	}
 	
 	g_State.lastHealth = healthPercent;
@@ -526,7 +523,7 @@ void DrawMenu() {
 		UI::_SET_TEXT_ENTRY("STRING");
 		
 		std::string itemText = std::string(menuItems[i]) + ": " + (*menuStates[i] ? "ON" : "OFF");
-		UI::_ADD_TEXT_COMPONENT_STRING((char*)itemText.c_str());
+		UI::_ADD_TEXT_COMPONENT_STRING(itemText.c_str());
 		UI::_DRAW_TEXT(menuX + 0.01f, itemY);
 	}
 	
