@@ -71,8 +71,10 @@ jobs:
         $projFile = "MSAgentGTA.csproj"
         $content = Get-Content $projFile -Raw
         
-        # Replace the reference path to use lib folder (escape the special characters properly)
-        $content = $content -replace '<HintPath>\$\(GTAV\)\\ScriptHookVDotNet3\.dll</HintPath>', '<HintPath>lib\ScriptHookVDotNet3.dll</HintPath>'
+        # Replace the reference path to use lib folder (simple string replacement)
+        $oldPath = '<HintPath>$(GTAV)\ScriptHookVDotNet3.dll</HintPath>'
+        $newPath = '<HintPath>lib\ScriptHookVDotNet3.dll</HintPath>'
+        $content = $content.Replace($oldPath, $newPath)
         
         Set-Content -Path $projFile -Value $content
         
