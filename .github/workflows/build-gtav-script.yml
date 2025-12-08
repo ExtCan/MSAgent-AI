@@ -35,17 +35,15 @@ jobs:
         try {
           Write-Host "Fetching latest ScriptHookVDotNet release info..."
           $release = Invoke-RestMethod -Uri $latestReleaseUrl -ErrorAction Stop
-          $asset = $release.assets | Where-Object { $_.name -like "ScriptHookVDotNet*.zip" } | Select-Object -First 1
-          
-          if ($asset) {
-            $url = $asset.browser_download_url
-            Write-Host "Found latest release: $($release.tag_name)"
-          } else {
-            throw "No suitable asset found in latest release"
-          }
+          $tag = $release.tag_name
+          # The actual filename is just ScriptHookVDotNet.zip without version number
+          $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/$tag/ScriptHookVDotNet.zip"
+          Write-Host "Found latest release: $tag"
+          Write-Host "Download URL: $url"
         } catch {
-          Write-Host "Could not fetch latest release, using fallback version v3.0.2"
-          $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.0.2/ScriptHookVDotNet-v3.0.2.zip"
+          Write-Host "Could not fetch latest release info, using fallback v3.6.0"
+          # Fallback to known working version with correct filename
+          $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet.zip"
         }
         
         $output = "GTAVScripts/lib/ScriptHookVDotNet.zip"
