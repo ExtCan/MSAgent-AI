@@ -548,28 +548,55 @@ namespace MSAgentGTAV
                 {
                     if (protocol.Equals("TCP", StringComparison.OrdinalIgnoreCase))
                     {
-                        // TCP Socket connection
+                        // TCP Socket connection with proper timeout
                         using (var client = new TcpClient())
                         {
-                            client.ConnectAsync(ipAddress, port).Wait(1000); // 1 second timeout
+                            // Set timeouts for both connect and read/write operations
+                            client.SendTimeout = 2000;    // 2 second send timeout
+                            client.ReceiveTimeout = 2000; // 2 second receive timeout
+                            
+                            LogMessage($"Attempting TCP connection to {ipAddress}:{port}...");
+                            
+                            // Use Task-based timeout for connection
+                            var connectTask = client.ConnectAsync(ipAddress, port);
+                            if (!connectTask.Wait(3000)) // 3 second connection timeout
+                            {
+                                LogMessage($"TCP connection timeout to {ipAddress}:{port}");
+                                return;
+                            }
                             
                             if (!client.Connected)
                             {
-                                LogMessage($"TCP connection failed to {ipAddress}:{port}");
-                                return; // Silently fail if not connected
+                                LogMessage($"TCP connection failed to {ipAddress}:{port} - not connected");
+                                return;
                             }
                             
+                            LogMessage($"TCP connected to {ipAddress}:{port}");
+                            
                             using (var stream = client.GetStream())
-                            using (var reader = new StreamReader(stream, Encoding.UTF8))
-                            using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
                             {
-                                writer.WriteLine(command);
-                                string response = reader.ReadLine();
-                                LogMessage($"Response from agent: {response}");
+                                // Set read timeout on stream
+                                stream.ReadTimeout = 2000;
+                                stream.WriteTimeout = 2000;
                                 
-                                if (response != null && response.StartsWith("ERROR"))
+                                using (var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true })
+                                using (var reader = new StreamReader(stream, Encoding.UTF8))
                                 {
-                                    GTA.UI.Notification.Show($"~r~MSAgent Error: {response}");
+                                    LogMessage($"Sending command: {command}");
+                                    writer.WriteLine(command);
+                                    
+                                    LogMessage("Waiting for response...");
+                                    string response = reader.ReadLine();
+                                    LogMessage($"Response from agent: {response ?? "(null)"}");
+                                    
+                                    if (response != null && response.StartsWith("ERROR"))
+                                    {
+                                        GTA.UI.Notification.Show($"~r~MSAgent Error: {response}");
+                                    }
+                                    else if (response != null)
+                                    {
+                                        LogMessage($"Successfully received response: {response}");
+                                    }
                                 }
                             }
                         }
@@ -579,14 +606,19 @@ namespace MSAgentGTAV
                         // Named Pipe connection
                         using (var client = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut))
                         {
+                            LogMessage($"Attempting Named Pipe connection to {pipeName}...");
                             client.Connect(1000); // 1 second timeout
+                            LogMessage($"Named Pipe connected to {pipeName}");
                             
                             using (var reader = new StreamReader(client))
                             using (var writer = new StreamWriter(client) { AutoFlush = true })
                             {
+                                LogMessage($"Sending command: {command}");
                                 writer.WriteLine(command);
+                                
+                                LogMessage("Waiting for response...");
                                 string response = reader.ReadLine();
-                                LogMessage($"Response from agent: {response}");
+                                LogMessage($"Response from agent: {response ?? "(null)"}");
                                 
                                 if (response != null && response.StartsWith("ERROR"))
                                 {
@@ -598,15 +630,25 @@ namespace MSAgentGTAV
                 }
                 catch (TimeoutException ex)
                 {
-                    // MSAgent not running, silently ignore
                     LogMessage($"Connection timeout: {ex.Message}");
+                    LogMessage($"  Protocol: {protocol}, IP: {ipAddress}, Port: {port}");
+                }
+                catch (SocketException ex)
+                {
+                    LogMessage($"Socket error: {ex.Message} (ErrorCode: {ex.ErrorCode})");
+                    LogMessage($"  Protocol: {protocol}, IP: {ipAddress}, Port: {port}");
+                    LogMessage($"  Make sure MSAgent-AI is running and TCP server is enabled on port {port}");
+                }
+                catch (IOException ex)
+                {
+                    LogMessage($"IO error: {ex.Message}");
+                    LogMessage($"  This usually means the connection was closed by the server");
                 }
                 catch (Exception ex)
                 {
-                    // Only show error on first connection attempt, then silently fail
-                    // This prevents spam if MSAgent-AI isn't running
-                    LogMessage($"Connection error: {ex.Message}");
-                    GTA.UI.Notification.Show($"~r~MSAgent connection error: {ex.Message}");
+                    LogMessage($"Connection error: {ex.GetType().Name}: {ex.Message}");
+                    LogMessage($"  Protocol: {protocol}, IP: {ipAddress}, Port: {port}");
+                    LogMessage($"  Stack trace: {ex.StackTrace}");
                 }
             });
         }

@@ -12,7 +12,9 @@ Use this checklist to verify your installation is correct:
 - [ ] Can open Settings dialog
 - [ ] Voice/SAPI4 is configured and working
 - [ ] (Optional) Ollama is running if AI features are desired
-- [ ] Check `MSAgentAI.log` shows "Pipeline server started on pipe: \\.\pipe\MSAgentAI"
+- [ ] **Check Settings → Pipeline → Protocol matches your script configuration (TCP or NamedPipe)**
+- [ ] **For TCP mode: Check Settings → Pipeline → Port (default: 8765)**
+- [ ] Check `MSAgentAI.log` shows "Pipeline server started" message
 
 ### GTA V Base Game
 
@@ -40,8 +42,11 @@ Use this checklist to verify your installation is correct:
 ### MSAgentGTAV Script Installation
 
 - [ ] `MSAgentGTAV.dll` exists in `[GTA V]\scripts\` folder
-- [ ] File size is reasonable (>10KB, typically 20-50KB)
-- [ ] File is not blocked (Right-click → Properties → Unblock if needed)
+- [ ] `MSAgentGTAV.ini` exists in `[GTA V]\scripts\` folder
+- [ ] File size is reasonable (>10KB, typically 20-50KB for DLL)
+- [ ] Files are not blocked (Right-click → Properties → Unblock if needed)
+- [ ] **Check `MSAgentGTAV.ini` Protocol setting matches MSAgent-AI**
+- [ ] **For TCP: Verify IPAddress and Port match MSAgent-AI settings**
 
 ## Testing Steps
 
@@ -57,29 +62,53 @@ Use this checklist to verify your installation is correct:
 
 ### Step 2: Test Communication (TCP or Named Pipe)
 
+#### Enable Debug Logging First
+
+Before testing, enable logging to help diagnose issues:
+
+1. Edit `[GTA V]\scripts\MSAgentGTAV.ini`
+2. Set `EnableLogging=true` in the `[Logging]` section
+3. Save and close
+
+OR enable it in-game:
+1. Launch GTA V
+2. Press F9 to open menu
+3. Check "Enable Logging"
+4. Close menu with F9
+
+Check the log file at `[GTA V]\scripts\MSAgentGTAV.log` for detailed connection information.
+
 #### TCP Mode Test (Default)
 
 Open PowerShell and run:
 
 ```powershell
 $client = New-Object System.Net.Sockets.TcpClient
-$client.Connect("127.0.0.1", 8765)
-$stream = $client.GetStream()
-$writer = New-Object System.IO.StreamWriter($stream)
-$reader = New-Object System.IO.StreamReader($stream)
-$writer.AutoFlush = $true
-$writer.WriteLine("PING")
-$response = $reader.ReadLine()
-Write-Host "Response: $response"
-$client.Close()
+try {
+    $client.Connect("127.0.0.1", 8765)
+    Write-Host "Connected successfully!"
+    $stream = $client.GetStream()
+    $writer = New-Object System.IO.StreamWriter($stream)
+    $reader = New-Object System.IO.StreamReader($stream)
+    $writer.AutoFlush = $true
+    $writer.WriteLine("SPEAK:Test from PowerShell")
+    $response = $reader.ReadLine()
+    Write-Host "Response: $response"
+} catch {
+    Write-Host "Connection failed: $($_.Exception.Message)"
+} finally {
+    $client.Close()
+}
 ```
 
-Expected output: `Response: PONG`
+Expected output: `Response: OK` and agent should speak "Test from PowerShell"
 
 **If this fails:**
 - Check MSAgent-AI Settings → Pipeline → Protocol is set to "TCP"
-- Verify Port is 8765
-- Check firewall isn't blocking the connection
+- Verify Port is 8765 (default)
+- Check firewall isn't blocking localhost connections to port 8765
+- Make sure MSAgent-AI is running
+- Check MSAgent-AI logs for errors
 
 #### Named Pipe Mode Test (Alternative)
 
