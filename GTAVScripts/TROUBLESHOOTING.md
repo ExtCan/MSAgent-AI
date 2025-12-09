@@ -80,22 +80,49 @@ Check the log file at `[GTA V]\scripts\MSAgentGTAV.log` for detailed connection 
 
 #### TCP Mode Test (Default)
 
-Open PowerShell and run:
+**IMPORTANT:** Make sure MSAgent-AI is running BEFORE testing!
+
+Open PowerShell and run this test script:
 
 ```powershell
+# TCP Connection Test Script
+$ip = "127.0.0.1"
+$port = 8765
+
+Write-Host "Testing TCP connection to MSAgent-AI at ${ip}:${port}..."
+Write-Host ""
+
 $client = New-Object System.Net.Sockets.TcpClient
 try {
-    $client.Connect("127.0.0.1", 8765)
-    Write-Host "Connected successfully!"
+    Write-Host "Attempting connection..."
+    $client.Connect($ip, $port)
+    Write-Host "✓ Connected successfully!" -ForegroundColor Green
+    Write-Host ""
+    
     $stream = $client.GetStream()
-    $writer = New-Object System.IO.StreamWriter($stream)
-    $reader = New-Object System.IO.StreamReader($stream)
+    $writer = New-Object System.IO.StreamWriter($stream, [System.Text.Encoding]::ASCII)
+    $reader = New-Object System.IO.StreamReader($stream, [System.Text.Encoding]::ASCII)
     $writer.AutoFlush = $true
+    
+    Write-Host "Sending test command..."
     $writer.WriteLine("SPEAK:Test from PowerShell")
+    
+    Write-Host "Waiting for response..."
     $response = $reader.ReadLine()
-    Write-Host "Response: $response"
+    Write-Host "✓ Response received: $response" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "SUCCESS: TCP connection is working!" -ForegroundColor Green
+    
 } catch {
-    Write-Host "Connection failed: $($_.Exception.Message)"
+    Write-Host "✗ Connection failed!" -ForegroundColor Red
+    Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Troubleshooting tips:" -ForegroundColor Cyan
+    Write-Host "  1. Make sure MSAgent-AI is running"
+    Write-Host "  2. Check Settings → Pipeline → Protocol = 'TCP'"
+    Write-Host "  3. Check Settings → Pipeline → Port = $port"
+    Write-Host "  4. Try disabling Windows Firewall temporarily"
+    Write-Host "  5. Check MSAgent-AI log for server errors"
 } finally {
     $client.Close()
 }
