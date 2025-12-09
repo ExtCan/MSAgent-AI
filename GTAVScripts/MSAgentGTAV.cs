@@ -553,7 +553,7 @@ namespace MSAgentGTAV
                         using (var cts = new CancellationTokenSource())
                         using (var client = new TcpClient())
                         {
-                            cts.CancelAfter(5000); // 5 second overall timeout
+                            cts.CancelAfter(3000); // 3 second overall timeout
                             
                             LogMessage($"Attempting TCP connection to {ipAddress}:{port}...");
                             LogMessage($"  Protocol config: {protocol}, IP config: {ipAddress}, Port config: {port}");
@@ -562,21 +562,18 @@ namespace MSAgentGTAV
                             {
                                 // Use async with cancellation token for proper timeout
                                 var connectTask = client.ConnectAsync(ipAddress, port);
-                                var completedTask = Task.WhenAny(connectTask, Task.Delay(3000, cts.Token)).Result;
+                                var timeoutTask = Task.Delay(3000, cts.Token);
+                                var completedTask = Task.WhenAny(connectTask, timeoutTask).GetAwaiter().GetResult();
                                 
-                                if (completedTask != connectTask)
+                                if (completedTask == timeoutTask)
                                 {
                                     LogMessage($"TCP connection timeout to {ipAddress}:{port} after 3 seconds");
                                     LogMessage($"  Verify MSAgent-AI is running and listening on this port");
                                     return;
                                 }
                                 
-                                // Check for connection errors
-                                if (connectTask.IsFaulted)
-                                {
-                                    LogMessage($"TCP connection faulted: {connectTask.Exception?.GetBaseException().Message}");
-                                    return;
-                                }
+                                // Wait for connection to complete and check for errors
+                                connectTask.GetAwaiter().GetResult();
                             }
                             catch (AggregateException ae)
                             {
@@ -604,10 +601,8 @@ namespace MSAgentGTAV
                                 {
                                     LogMessage($"Sending command via TCP: {command}");
                                     
-                                    // Send command with explicit newline
-                                    writer.Write(command);
-                                    writer.Write("\n");
-                                    writer.Flush();
+                                    // Send command with newline
+                                    writer.WriteLine(command);
                                     
                                     LogMessage("Command sent, waiting for response...");
                                     
