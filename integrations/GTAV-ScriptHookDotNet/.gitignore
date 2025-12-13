@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+*.dll
+*.pdb
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.VC.opendb
+
+# NuGet
+packages/
+
+# ScriptHookDotNet reference (downloaded by CI or referenced from GTA V installation)
+lib/
+# Note: Users should reference ScriptHookVDotNet3.dll from their GTA V installation
