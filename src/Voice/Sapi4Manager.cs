@@ -78,8 +78,7 @@ namespace MSAgentAI.Voice
                 // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\TTSMode
                 EnumerateTTSModes(voices);
 
-                // Fallback: Check for voices using Tokens (newer SAPI)
-                EnumerateVoiceTokens(voices);
+                // NOTE: EnumerateVoiceTokens is removed - only show SAPI4 voices, not SAPI5
             }
             catch (Exception ex)
             {
