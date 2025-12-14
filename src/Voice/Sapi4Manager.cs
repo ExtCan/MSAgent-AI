@@ -129,13 +129,13 @@ namespace MSAgentAI.Voice
                 {
                     hr = ttsEnum.Next(1, out modeInfo, out fetched);
                     
-                    // S_FALSE (1) means no more items
+                    // S_OK (0) with fetched > 0 means we got an item
+                    // S_FALSE (1) or any other non-zero hr means no more items
                     if (hr != 0 || fetched == 0)
                         break;
 
                     // Add voice to list
                     string modeName = modeInfo.szModeName ?? "";
-                    string mfgName = modeInfo.szMfgName ?? "";
                     string productName = modeInfo.szProductName ?? "";
                     
                     // Build display name
