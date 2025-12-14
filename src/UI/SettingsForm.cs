@@ -1642,6 +1642,20 @@ namespace MSAgentAI.UI
         {
             if (_agentManager?.IsLoaded == true)
             {
+                // Apply current slider values before testing
+                _agentManager.SetSpeechSpeed(_speedTrackBar.Value);
+                _agentManager.SetSpeechPitch(_pitchTrackBar.Value);
+                
+                // Convert volume from 0-100 to 0-65535
+                int volumeValue = (int)(_volumeTrackBar.Value * VolumeScaleFactor);
+                _agentManager.SetSpeechVolume(volumeValue);
+                
+                // Apply selected voice if one is selected
+                if (_voiceComboBox.SelectedItem is VoiceInfo voice)
+                {
+                    _agentManager.SetTTSModeID(voice.ModeId ?? voice.Id);
+                }
+                
                 _agentManager.Speak("This is a test of the text to speech voice.");
             }
             else

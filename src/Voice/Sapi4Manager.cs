@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using Microsoft.Win32;
 using MSAgentAI.Logging;
 
 namespace MSAgentAI.Voice
@@ -62,35 +61,30 @@ namespace MSAgentAI.Voice
         }
 
         /// <summary>
-        /// Gets available SAPI4 TTS Modes from the registry (the way MS Agent/CyberBuddy does it)
-        /// Looks in HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\TTSMode
-        /// Each voice has a ModeID GUID that is used to set the TTS mode in MS Agent
+        /// Gets available SAPI4 voices using proper COM enumeration
         /// </summary>
         public List<VoiceInfo> GetAvailableVoices()
         {
             var voices = new List<VoiceInfo>();
 
-            Logger.Log("Enumerating SAPI4 TTS Modes...");
+            Logger.Log("Enumerating SAPI4 voices via COM...");
 
             try
             {
-                // Primary location: TTS Modes in Speech registry (CyberBuddy approach)
-                // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\TTSMode
-                EnumerateTTSModes(voices);
-
-                // Fallback: Check for voices using Tokens (newer SAPI)
-                EnumerateVoiceTokens(voices);
+                // Use COM enumeration - the proper SAPI4 way
+                EnumerateViaCOM(voices);
             }
             catch (Exception ex)
             {
                 Logger.LogError("Error enumerating SAPI4 voices", ex);
             }
 
-            Logger.Log($"Found {voices.Count} SAPI4 TTS modes");
+            Logger.Log($"Found {voices.Count} SAPI4 voices");
 
             // Add default if none found
             if (voices.Count == 0)
             {
+                Logger.Log("No SAPI4 voices found. Adding default placeholder.");
                 voices.Add(new VoiceInfo 
                 { 
                     Id = "default", 
@@ -104,132 +98,85 @@ namespace MSAgentAI.Voice
         }
 
         /// <summary>
-        /// Enumerate TTS Modes from the registry - this is the proper SAPI4 way
+        /// Enumerate SAPI4 voices using COM ITTSEnum interface - the proper way
         /// </summary>
-        private void EnumerateTTSModes(List<VoiceInfo> voices)
+        private void EnumerateViaCOM(List<VoiceInfo> voices)
         {
-            // Check both 32-bit and 64-bit registry locations
-            string[] registryPaths = new[]
-            {
-                @"SOFTWARE\Microsoft\Speech\Voices\TTSMode",
-                @"SOFTWARE\WOW6432Node\Microsoft\Speech\Voices\TTSMode",
-                @"SOFTWARE\Microsoft\Speech\Voices\Tokens",
-                @"SOFTWARE\WOW6432Node\Microsoft\Speech\Voices\Tokens"
-            };
-
-            foreach (var basePath in registryPaths)
-            {
-                try
-                {
-                    using (var key = Registry.LocalMachine.OpenSubKey(basePath))
-                    {
-                        if (key == null) continue;
-
-                        foreach (var modeName in key.GetSubKeyNames())
-                        {
-                            try
-                            {
-                                using (var modeKey = key.OpenSubKey(modeName))
-                                {
-                                    if (modeKey == null) continue;
-
-                                    // Get ModeID (GUID) - this is what MS Agent needs
-                                    string modeId = modeName;
-                                    
-                                    // Try to get ModeID from subkey value if it exists
-                                    var modeIdValue = modeKey.GetValue("ModeID");
-                                    if (modeIdValue != null)
-                                    {
-                                        modeId = modeIdValue.ToString();
-                                    }
-
-                                    // Get display name from various possible locations
-                                    string displayName = modeKey.GetValue("")?.ToString();
-                                    if (string.IsNullOrEmpty(displayName))
-                                    {
-                                        displayName = modeKey.GetValue("VoiceName")?.ToString();
-                                    }
-                                    if (string.IsNullOrEmpty(displayName))
-                                    {
-                                        // Check Attributes subkey
-                                        using (var attrKey = modeKey.OpenSubKey("Attributes"))
-                                        {
-                                            if (attrKey != null)
-                                            {
-                                                displayName = attrKey.GetValue("Name")?.ToString();
-                                            }
-                                        }
-                                    }
-                                    if (string.IsNullOrEmpty(displayName))
-                                    {
-                                        displayName = modeName;
-                                    }
-
-                                    // Skip duplicates
-                                    if (voices.Exists(v => v.ModeId == modeId || v.Name == displayName))
-                                        continue;
-
-                                    voices.Add(new VoiceInfo
-                                    {
-                                        Id = modeId,
-                                        Name = displayName,
-                                        ModeId = modeId,
-                                        IsSapi4 = true
-                                    });
-
-                                    Logger.Log($"Found SAPI4 TTS Mode: {displayName} (ModeID: {modeId})");
-                                }
-                            }
-                            catch { }
-                        }
-                    }
-                }
-                catch { }
-            }
-        }
-
-        /// <summary>
-        /// Enumerate voice tokens (SAPI5 style, fallback)
-        /// </summary>
-        private void EnumerateVoiceTokens(List<VoiceInfo> voices)
-        {
+            ITTSEnum ttsEnum = null;
+            
             try
             {
-                // Also try OneCore voices (Windows 10+) as fallback
-                using (var key = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Speech_OneCore\Voices\Tokens"))
+                // Create SAPI4 TTS Enumerator
+                Type ttsEnumType = Type.GetTypeFromCLSID(Sapi4Constants.CLSID_TTSEnumerator);
+                if (ttsEnumType == null)
                 {
-                    if (key == null) return;
+                    Logger.Log("SAPI4 TTSEnumerator not found. SAPI4 may not be installed.");
+                    return;
+                }
 
-                    foreach (var tokenName in key.GetSubKeyNames())
+                object ttsEnumObj = Activator.CreateInstance(ttsEnumType);
+                ttsEnum = (ITTSEnum)ttsEnumObj;
+
+                // Reset to start of enumeration
+                ttsEnum.Reset();
+
+                // Enumerate all voices
+                TTSMODEINFO modeInfo;
+                uint fetched;
+                int hr;
+
+                while (true)
+                {
+                    hr = ttsEnum.Next(1, out modeInfo, out fetched);
+                    
+                    // S_OK (0) with fetched > 0 means we got an item
+                    // S_FALSE (1) or any other non-zero hr means no more items
+                    if (hr != 0 || fetched == 0)
+                        break;
+
+                    // Add voice to list
+                    string modeName = modeInfo.szModeName ?? "";
+                    string productName = modeInfo.szProductName ?? "";
+                    
+                    // Build display name
+                    string displayName = modeName;
+                    if (string.IsNullOrEmpty(displayName))
+                        displayName = productName;
+                    if (string.IsNullOrEmpty(displayName))
+                        displayName = modeInfo.gModeID.ToString();
+
+                    // Skip duplicates
+                    string modeIdStr = modeInfo.gModeID.ToString("B"); // Format as {GUID}
+                    if (voices.Exists(v => v.ModeId == modeIdStr))
+                        continue;
+
+                    voices.Add(new VoiceInfo
                     {
-                        try
-                        {
-                            using (var tokenKey = key.OpenSubKey(tokenName))
-                            {
-                                if (tokenKey == null) continue;
+                        Id = modeIdStr,
+                        Name = displayName,
+                        ModeId = modeIdStr,
+                        IsSapi4 = true
+                    });
 
-                                string displayName = tokenKey.GetValue("")?.ToString() ?? tokenName;
-                                
-                                // Skip duplicates
-                                if (voices.Exists(v => v.Name == displayName))
-                                    continue;
-
-                                voices.Add(new VoiceInfo
-                                {
-                                    Id = tokenName,
-                                    Name = displayName + " (SAPI5)",
-                                    ModeId = tokenName,
-                                    IsSapi4 = false
-                                });
-
-                                Logger.Log($"Found SAPI5 voice: {displayName}");
-                            }
-                        }
-                        catch { }
-                    }
+                    Logger.Log($"Found SAPI4 voice: {displayName} (ModeID: {modeIdStr})");
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.LogError("Error in COM enumeration", ex);
+            }
+            finally
+            {
+                // Release COM object
+                if (ttsEnum != null)
+                {
+                    try
+                    {
+                        Marshal.ReleaseComObject(ttsEnum);
+                    }
+                    catch { }
+                }
+            }
         }
 
         /// <summary>
