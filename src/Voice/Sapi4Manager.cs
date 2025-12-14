@@ -78,7 +78,7 @@ namespace MSAgentAI.Voice
                 // HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\TTSMode
                 EnumerateTTSModes(voices);
 
-                // Don't include SAPI5 voices - only SAPI4 TTS Modes are compatible with MS Agent
+                // Exclude SAPI5 voices as MS Agent requires SAPI4 TTS ModeID format for voice selection
             }
             catch (Exception ex)
             {
@@ -107,7 +107,7 @@ namespace MSAgentAI.Voice
         /// </summary>
         private void EnumerateTTSModes(List<VoiceInfo> voices)
         {
-            // Check both 32-bit and 64-bit registry locations for SAPI4 TTS Modes only
+            // Check both 32-bit and 64-bit registry locations for SAPI4 TTS Modes only (SAPI5 Tokens paths removed)
             string[] registryPaths = new[]
             {
                 @"SOFTWARE\Microsoft\Speech\Voices\TTSMode",
