@@ -1,0 +1,20 @@
+# Build results
+bin/
+obj/
+*.pdb
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build artifacts
+*.log
+
+# Dependencies (downloaded by CI)
+lib/
+*.zip
+
+# Allow DLLs in built folder
+*.dll
+!built/*.dll

@@ -1,0 +1,45 @@
+{
+  "MSAgentGTAV": {
+    "Description": "Configuration template for MSAgentGTAV script",
+    "MenuKey": "F9",
+    "Cooldowns": {
+      "StandardCooldownMs": 10000,
+      "FastCooldownMs": 3000,
+      "Description": "Cooldown times in milliseconds between reactions"
+    },
+    "DefaultToggles": {
+      "ReactToVehicles": true,
+      "ReactToMissions": true,
+      "ReactToWeather": true,
+      "ReactToTime": true,
+      "ReactToLocation": true,
+      "ReactToPlayerState": true,
+      "ReactToCharacterSwitch": true,
+      "ReactToVehicleValue": true
+    },
+    "PipeSettings": {
+      "PipeName": "MSAgentAI",
+      "ConnectionTimeoutMs": 1000,
+      "Description": "Named pipe connection settings for MSAgent-AI communication"
+    },
+    "CustomPrompts": {
+      "Description": "You can customize these prompts in the source code (MSAgentGTAV.cs)",
+      "Examples": {
+        "VehicleEntry": "The player just entered a {vehicleType} called {vehicleName}{valueInfo}. React to this vehicle!",
+        "VehicleExit": "The player just exited their vehicle. Comment on it.",
+        "WeatherChange": "The weather changed to {weatherName}. Comment on the weather!",
+        "WantedLevel": "The player now has {stars} wanted stars! React to the police chase!",
+        "WantedLevelCleared": "The player escaped the police! Congratulate them!",
+        "PlayerDeath": "The player just died! React to their death with sympathy or humor.",
+        "PlayerRespawn": "The player respawned. Welcome them back.",
+        "CharacterSwitch": "The player switched to {characterName}. React to this character!",
+        "LocationChange": "The player entered {locationName}. Comment on this location!",
+        "TimeOfDay": "It's now {timeDescription} in the game. Comment on the time!"
+      }
+    },
+    "VehicleValues": {
+      "Description": "Vehicle values are defined in InitializeVehicleValues() method",
+      "Note": "Add your own vehicle values by editing the MSAgentGTAV.cs source code"
+    }
+  }
+}

@@ -7,6 +7,8 @@ on:
       - 'v*'
   pull_request:
     branches: [ main, master ]
+    paths-ignore:
+      - 'GTAVScripts/**'
   workflow_dispatch:
 
 jobs:
