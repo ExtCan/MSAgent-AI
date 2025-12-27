@@ -8,6 +8,11 @@ A Windows desktop friend application inspired by BonziBUDDY and CyberBuddy, usin
 - **SAPI4 Text-to-Speech**: Full SAPI4 voice support with configurable Speed, Pitch, and Volume
 - **Customizable Lines**: Edit welcome, idle, moved, exit, clicked, jokes, and thoughts lines
 - **Ollama AI Integration**: Connect to Ollama for dynamic AI-powered conversations with personality prompting
+  - **Token Usage Tracking**: Monitor prompt, completion, and total token usage for all interactions
+  - **API Key Support**: Optional authentication for secured Ollama deployments
+  - **Web Search**: AI can search the web using DuckDuckGo (requires compatible model)
+  - **URL Reading**: AI can read and process content from URLs (requires compatible model)
+  - **Tool/Function Calling**: Extensible tool system for enhanced AI capabilities
 - **Random Dialog**: Configurable random dialog feature (1 in 9000 chance per second by default) that sends custom prompts to Ollama
 - **User-Friendly GUI**: System tray application with comprehensive settings panel
 
@@ -53,10 +58,25 @@ Access via tray menu: **View Log...**
 ### Ollama AI Settings
 - **Ollama URL**: Default is `http://localhost:11434`
 - **Model**: Select from available Ollama models
+- **API Key**: Optional API key for authentication (if your Ollama deployment requires it)
 - **Personality Prompt**: Customize the AI's personality
 - **Enable Chat**: Toggle AI chat functionality
 - **Random Dialog**: Enable random AI-generated dialog
 - **Random Chance**: Set the chance of random dialog (1 in N per second)
+- **Web Search**: Enable web searching capabilities (requires compatible model with tool support)
+- **URL Reading**: Enable reading content from URLs (requires compatible model with tool support)
+
+#### Token Usage Tracking
+The Ollama client now tracks token usage for all interactions:
+- **Prompt Tokens**: Number of tokens in the input
+- **Completion Tokens**: Number of tokens in the response
+- **Total Tokens**: Sum of prompt and completion tokens
+- Session tracking maintains cumulative token counts
+
+#### Advanced Features
+- **Tool/Function Calling**: When enabled, the AI can use tools like web search and URL reading
+- **DuckDuckGo Search**: No API key required for web search functionality
+- **URL Content Reading**: Fetches and processes content from web pages
 
 ### Pipeline Settings
 - **Protocol**: Choose between Named Pipe (local) or TCP Socket (network)
