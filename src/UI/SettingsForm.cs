@@ -885,6 +885,9 @@ namespace MSAgentAI.UI
                 Size = new Size(100, 20)
             };
 
+            // API key text box with password masking
+            // Note: Uses PasswordChar for visual masking only. For production deployments
+            // requiring higher security, consider using SecureString or encrypted storage.
             _apiKeyTextBox = new TextBox
             {
                 Location = new Point(120, 87),

@@ -23,7 +23,18 @@ namespace MSAgentAI.AI
         public string PersonalityPrompt { get; set; } = "";
         public int MaxTokens { get; set; } = 150;
         public double Temperature { get; set; } = 0.8;
-        public string ApiKey { get; set; } = "";
+        
+        private string _apiKey = "";
+        public string ApiKey 
+        { 
+            get => _apiKey;
+            set
+            {
+                _apiKey = value;
+                UpdateHttpClientHeaders();
+            }
+        }
+        
         public bool EnableWebSearch { get; set; } = false;
         public bool EnableUrlReading { get; set; } = false;
         
@@ -98,6 +109,9 @@ IMPORTANT RULES YOU MUST FOLLOW:
 4. Keep responses short and conversational (1-3 sentences).
 5. Speak naturally as a desktop companion character.
 ";
+        
+        // URL content reading limit (characters)
+        private const int MAX_URL_CONTENT_LENGTH = 2000;
 
         public OllamaClient()
         {
@@ -113,7 +127,6 @@ IMPORTANT RULES YOU MUST FOLLOW:
         public void SetApiKey(string apiKey)
         {
             ApiKey = apiKey;
-            UpdateHttpClientHeaders();
         }
         
         /// <summary>
@@ -279,21 +292,49 @@ IMPORTANT RULES YOU MUST FOLLOW:
 
                 // Build request object
                 object request;
-                if ((EnableWebSearch || EnableUrlReading) && _tools.Length > 0)
+                if (EnableWebSearch || EnableUrlReading)
                 {
-                    // Include tools in the request
-                    request = new
+                    // Filter tools based on enabled features
+                    var enabledTools = new List<object>();
+                    if (EnableWebSearch && _tools.Length > 0)
                     {
-                        model = Model,
-                        messages = messages,
-                        stream = false,
-                        tools = _tools,
-                        options = new
+                        enabledTools.Add(_tools[0]); // web_search
+                    }
+                    if (EnableUrlReading && _tools.Length > 1)
+                    {
+                        enabledTools.Add(_tools[1]); // read_url
+                    }
+                    
+                    // Include only enabled tools in the request
+                    if (enabledTools.Count > 0)
+                    {
+                        request = new
                         {
-                            num_predict = MaxTokens,
-                            temperature = Temperature
-                        }
-                    };
+                            model = Model,
+                            messages = messages,
+                            stream = false,
+                            tools = enabledTools.ToArray(),
+                            options = new
+                            {
+                                num_predict = MaxTokens,
+                                temperature = Temperature
+                            }
+                        };
+                    }
+                    else
+                    {
+                        request = new
+                        {
+                            model = Model,
+                            messages = messages,
+                            stream = false,
+                            options = new
+                            {
+                                num_predict = MaxTokens,
+                                temperature = Temperature
+                            }
+                        };
+                    }
                 }
                 else
                 {
@@ -377,12 +418,15 @@ IMPORTANT RULES YOU MUST FOLLOW:
                                 string cleanedResponse = CleanResponse(followUpResult.Message.Content);
 
                                 // Update token usage with follow-up request
-                                LastPromptTokens += followUpResult.PromptEvalCount;
-                                LastCompletionTokens += followUpResult.EvalCount;
-                                LastTotalTokens = LastPromptTokens + LastCompletionTokens;
+                                // Add follow-up tokens to the cumulative totals
                                 TotalPromptTokens += followUpResult.PromptEvalCount;
                                 TotalCompletionTokens += followUpResult.EvalCount;
                                 TotalTokensUsed += followUpResult.PromptEvalCount + followUpResult.EvalCount;
+                                
+                                // Update last request to include both initial and follow-up tokens
+                                LastPromptTokens += followUpResult.PromptEvalCount;
+                                LastCompletionTokens += followUpResult.EvalCount;
+                                LastTotalTokens += followUpResult.PromptEvalCount + followUpResult.EvalCount;
 
                                 // Add to conversation history
                                 _conversationHistory.Add(new ChatMessage { Role = "user", Content = message });
@@ -579,10 +623,10 @@ IMPORTANT RULES YOU MUST FOLLOW:
                     content = Regex.Replace(content, @"\s+", " ");
                     content = System.Net.WebUtility.HtmlDecode(content).Trim();
                     
-                    // Limit content length
-                    if (content.Length > 2000)
+                    // Limit content length to avoid excessive token usage
+                    if (content.Length > MAX_URL_CONTENT_LENGTH)
                     {
-                        content = content.Substring(0, 2000) + "... (truncated)";
+                        content = content.Substring(0, MAX_URL_CONTENT_LENGTH) + "... (truncated)";
                     }
                     
                     return content;
