@@ -437,7 +437,8 @@ IMPORTANT RULES YOU MUST FOLLOW:
                         }
                     }
                     
-                    // If we haven't returned yet, check if the original response has content
+                    // Fallback: If tool calls failed, returned no content, or follow-up request failed,
+                    // use the original response content if available
                     if (result?.Message?.Content != null)
                     {
                         string cleanedResponse = CleanResponse(result.Message.Content);
