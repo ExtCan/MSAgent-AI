@@ -436,7 +436,9 @@ IMPORTANT RULES YOU MUST FOLLOW:
                             }
                         }
                     }
-                    else if (result?.Message?.Content != null)
+                    
+                    // If we haven't returned yet, check if the original response has content
+                    if (result?.Message?.Content != null)
                     {
                         string cleanedResponse = CleanResponse(result.Message.Content);
                         
