@@ -81,9 +81,6 @@ namespace MSAgentAI.UI
         private NumericUpDown _randomChanceNumeric;
         private CheckBox _enablePrewrittenIdleCheckBox;
         private NumericUpDown _prewrittenIdleChanceNumeric;
-        private TextBox _apiKeyTextBox;
-        private CheckBox _enableWebSearchCheckBox;
-        private CheckBox _enableUrlReadingCheckBox;
 
         // Theme controls
         private ComboBox _themeComboBox;
@@ -181,18 +178,15 @@ namespace MSAgentAI.UI
             this.Text = "MSAgent AI Settings";
             this.Size = new Size(650, 550);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.Sizable;
-            this.MaximizeBox = true;
-            this.MinimizeBox = true;
-            this.MinimumSize = new Size(650, 550);
-            this.AutoScroll = true;
+            this.FormBorderStyle = FormBorderStyle.FixedDialog;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
 
             // Create main tab control
             _tabControl = new TabControl
             {
                 Location = new Point(10, 10),
-                Size = new Size(615, 450),
-                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
+                Size = new Size(615, 450)
             };
 
             // Create tabs
@@ -211,8 +205,7 @@ namespace MSAgentAI.UI
                 Text = "OK",
                 Location = new Point(365, 470),
                 Size = new Size(80, 30),
-                DialogResult = DialogResult.OK,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                DialogResult = DialogResult.OK
             };
             _okButton.Click += OnOkClick;
 
@@ -221,16 +214,14 @@ namespace MSAgentAI.UI
                 Text = "Cancel",
                 Location = new Point(455, 470),
                 Size = new Size(80, 30),
-                DialogResult = DialogResult.Cancel,
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                DialogResult = DialogResult.Cancel
             };
 
             _applyButton = new Button
             {
                 Text = "Apply",
                 Location = new Point(545, 470),
-                Size = new Size(80, 30),
-                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
+                Size = new Size(80, 30)
             };
             _applyButton.Click += OnApplyClick;
 
@@ -883,34 +874,17 @@ namespace MSAgentAI.UI
                 Size = new Size(60, 25)
             };
             _refreshModelsButton.Click += OnRefreshModelsClick;
-            
-            var apiKeyLabel = new Label
-            {
-                Text = "API Key (optional):",
-                Location = new Point(15, 90),
-                Size = new Size(100, 20)
-            };
-
-            // API key text box with password masking
-            // Note: Uses PasswordChar for visual masking only. For production deployments
-            // requiring higher security, consider using SecureString or encrypted storage.
-            _apiKeyTextBox = new TextBox
-            {
-                Location = new Point(120, 87),
-                Size = new Size(300, 23),
-                PasswordChar = '*'
-            };
 
             var presetLabel = new Label
             {
                 Text = "Preset:",
-                Location = new Point(15, 125),
+                Location = new Point(15, 90),
                 Size = new Size(100, 20)
             };
 
             _personalityPresetComboBox = new ComboBox
             {
-                Location = new Point(120, 122),
+                Location = new Point(120, 87),
                 Size = new Size(200, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
@@ -930,7 +904,7 @@ namespace MSAgentAI.UI
             _applyPresetButton = new Button
             {
                 Text = "Apply",
-                Location = new Point(330, 121),
+                Location = new Point(330, 86),
                 Size = new Size(60, 25)
             };
             _applyPresetButton.Click += OnApplyPresetClick;
@@ -938,7 +912,7 @@ namespace MSAgentAI.UI
             _savePresetButton = new Button
             {
                 Text = "Save As...",
-                Location = new Point(395, 121),
+                Location = new Point(395, 86),
                 Size = new Size(70, 25)
             };
             _savePresetButton.Click += OnSavePresetClick;
@@ -946,13 +920,13 @@ namespace MSAgentAI.UI
             var themeLabel = new Label
             {
                 Text = "UI Theme:",
-                Location = new Point(475, 125),
+                Location = new Point(475, 90),
                 Size = new Size(60, 20)
             };
 
             _themeComboBox = new ComboBox
             {
-                Location = new Point(535, 122),
+                Location = new Point(535, 87),
                 Size = new Size(55, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
@@ -962,13 +936,13 @@ namespace MSAgentAI.UI
             var personalityLabel = new Label
             {
                 Text = "Personality Prompt:",
-                Location = new Point(15, 155),
+                Location = new Point(15, 120),
                 Size = new Size(200, 20)
             };
 
             _personalityTextBox = new TextBox
             {
-                Location = new Point(15, 175),
+                Location = new Point(15, 140),
                 Size = new Size(580, 100),
                 Multiline = true,
                 ScrollBars = ScrollBars.Vertical
@@ -977,27 +951,27 @@ namespace MSAgentAI.UI
             _enableChatCheckBox = new CheckBox
             {
                 Text = "Enable Ollama Chat",
-                Location = new Point(15, 285),
+                Location = new Point(15, 250),
                 Size = new Size(200, 25)
             };
 
             _enableRandomDialogCheckBox = new CheckBox
             {
                 Text = "Enable Random Dialog (uses Ollama)",
-                Location = new Point(15, 315),
+                Location = new Point(15, 280),
                 Size = new Size(250, 25)
             };
 
             var chanceLabel = new Label
             {
                 Text = "Random Chance (1 in N per second):",
-                Location = new Point(15, 350),
+                Location = new Point(15, 315),
                 Size = new Size(220, 20)
             };
 
             _randomChanceNumeric = new NumericUpDown
             {
-                Location = new Point(240, 347),
+                Location = new Point(240, 312),
                 Size = new Size(100, 23),
                 Minimum = 100,
                 Maximum = 100000,
@@ -1007,44 +981,30 @@ namespace MSAgentAI.UI
             _enablePrewrittenIdleCheckBox = new CheckBox
             {
                 Text = "Enable Pre-written Idle Lines",
-                Location = new Point(15, 380),
+                Location = new Point(15, 345),
                 Size = new Size(220, 25)
             };
 
             var prewrittenChanceLabel = new Label
             {
                 Text = "Idle Chance (1 in N):",
-                Location = new Point(240, 383),
+                Location = new Point(240, 348),
                 Size = new Size(130, 20)
             };
 
             _prewrittenIdleChanceNumeric = new NumericUpDown
             {
-                Location = new Point(370, 380),
+                Location = new Point(370, 345),
                 Size = new Size(80, 23),
                 Minimum = 1,
                 Maximum = 1000,
                 Value = 30
             };
-            
-            _enableWebSearchCheckBox = new CheckBox
-            {
-                Text = "Enable Web Search (requires compatible model)",
-                Location = new Point(15, 415),
-                Size = new Size(300, 25)
-            };
-            
-            _enableUrlReadingCheckBox = new CheckBox
-            {
-                Text = "Enable URL Reading (requires compatible model)",
-                Location = new Point(15, 445),
-                Size = new Size(300, 25)
-            };
 
             var promptsLabel = new Label
             {
                 Text = "Edit random dialog prompts in the 'Lines' tab. AI uses /emp/ for emphasis and &&Animation for animations.",
-                Location = new Point(15, 480),
+                Location = new Point(15, 380),
                 Size = new Size(580, 20),
                 ForeColor = Color.Gray
             };
@@ -1053,14 +1013,12 @@ namespace MSAgentAI.UI
             {
                 urlLabel, _ollamaUrlTextBox, _testConnectionButton,
                 modelLabel, _ollamaModelComboBox, _refreshModelsButton,
-                apiKeyLabel, _apiKeyTextBox,
                 presetLabel, _personalityPresetComboBox, _applyPresetButton, _savePresetButton,
                 themeLabel, _themeComboBox,
                 personalityLabel, _personalityTextBox,
                 _enableChatCheckBox, _enableRandomDialogCheckBox,
                 chanceLabel, _randomChanceNumeric,
                 _enablePrewrittenIdleCheckBox, prewrittenChanceLabel, _prewrittenIdleChanceNumeric,
-                _enableWebSearchCheckBox, _enableUrlReadingCheckBox,
                 promptsLabel
             });
         }
@@ -1289,7 +1247,6 @@ namespace MSAgentAI.UI
             // Ollama settings
             _ollamaUrlTextBox.Text = _settings.OllamaUrl;
             _ollamaModelComboBox.Text = _settings.OllamaModel;
-            _apiKeyTextBox.Text = _settings.OllamaApiKey;
             _personalityTextBox.Text = _settings.PersonalityPrompt;
             _enableChatCheckBox.Checked = _settings.EnableOllamaChat;
             _enableRandomDialogCheckBox.Checked = _settings.EnableRandomDialog;
@@ -1298,8 +1255,6 @@ namespace MSAgentAI.UI
             _enablePrewrittenIdleCheckBox.Checked = _settings.EnablePrewrittenIdle;
             _prewrittenIdleChanceNumeric.Value = Math.Max(_prewrittenIdleChanceNumeric.Minimum,
                 Math.Min(_prewrittenIdleChanceNumeric.Maximum, _settings.PrewrittenIdleChance));
-            _enableWebSearchCheckBox.Checked = _settings.EnableWebSearch;
-            _enableUrlReadingCheckBox.Checked = _settings.EnableUrlReading;
 
             // Theme
             int themeIndex = _themeComboBox.Items.IndexOf(_settings.UITheme);
@@ -1370,15 +1325,12 @@ namespace MSAgentAI.UI
             // Ollama settings
             _settings.OllamaUrl = _ollamaUrlTextBox.Text;
             _settings.OllamaModel = _ollamaModelComboBox.Text;
-            _settings.OllamaApiKey = _apiKeyTextBox.Text;
             _settings.PersonalityPrompt = _personalityTextBox.Text;
             _settings.EnableOllamaChat = _enableChatCheckBox.Checked;
             _settings.EnableRandomDialog = _enableRandomDialogCheckBox.Checked;
             _settings.RandomDialogChance = (int)_randomChanceNumeric.Value;
             _settings.EnablePrewrittenIdle = _enablePrewrittenIdleCheckBox.Checked;
             _settings.PrewrittenIdleChance = (int)_prewrittenIdleChanceNumeric.Value;
-            _settings.EnableWebSearch = _enableWebSearchCheckBox.Checked;
-            _settings.EnableUrlReading = _enableUrlReadingCheckBox.Checked;
 
             // Theme
             _settings.UITheme = _themeComboBox.SelectedItem?.ToString() ?? "Default";

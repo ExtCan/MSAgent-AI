@@ -135,10 +135,7 @@ namespace MSAgentAI.UI
             {
                 BaseUrl = _settings.OllamaUrl,
                 Model = _settings.OllamaModel,
-                PersonalityPrompt = _settings.PersonalityPrompt,
-                ApiKey = _settings.OllamaApiKey,
-                EnableWebSearch = _settings.EnableWebSearch,
-                EnableUrlReading = _settings.EnableUrlReading
+                PersonalityPrompt = _settings.PersonalityPrompt
             };
 
             _cancellationTokenSource = new CancellationTokenSource();
@@ -851,9 +848,6 @@ namespace MSAgentAI.UI
                 _ollamaClient.BaseUrl = _settings.OllamaUrl;
                 _ollamaClient.Model = _settings.OllamaModel;
                 _ollamaClient.PersonalityPrompt = _settings.PersonalityPrompt;
-                _ollamaClient.ApiKey = _settings.OllamaApiKey;
-                _ollamaClient.EnableWebSearch = _settings.EnableWebSearch;
-                _ollamaClient.EnableUrlReading = _settings.EnableUrlReading;
                 
                 // Update available animations for AI to use
                 if (_agentManager?.IsLoaded == true)
