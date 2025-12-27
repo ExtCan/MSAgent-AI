@@ -36,8 +36,11 @@ namespace MSAgentAI.Config
         // Ollama AI settings
         public string OllamaUrl { get; set; } = "http://localhost:11434";
         public string OllamaModel { get; set; } = "llama2";
+        public string OllamaApiKey { get; set; } = "";
         public string PersonalityPrompt { get; set; } = "You are a helpful and friendly desktop companion. Keep responses short and conversational.";
         public bool EnableOllamaChat { get; set; } = false;
+        public bool EnableWebSearch { get; set; } = false;
+        public bool EnableUrlReading { get; set; } = false;
 
         // Pipeline settings
         public string PipelineProtocol { get; set; } = "NamedPipe"; // "NamedPipe" or "TCP"
