@@ -361,6 +361,13 @@ IMPORTANT RULES YOU MUST FOLLOW:
                     var responseContent = await response.Content.ReadAsStringAsync();
                     var result = JsonConvert.DeserializeObject<OllamaChatResponse>(responseContent);
 
+                    // Check if deserialization was successful
+                    if (result == null)
+                    {
+                        System.Diagnostics.Debug.WriteLine("Ollama chat error: Failed to deserialize response");
+                        return null;
+                    }
+
                     // Track token usage
                     LastPromptTokens = result.PromptEvalCount;
                     LastCompletionTokens = result.EvalCount;
@@ -436,7 +443,10 @@ IMPORTANT RULES YOU MUST FOLLOW:
                             }
                         }
                     }
-                    else if (result?.Message?.Content != null)
+                    
+                    // Fallback: If tool calls failed, returned no content, or follow-up request failed,
+                    // use the original response content if available
+                    if (result?.Message?.Content != null)
                     {
                         string cleanedResponse = CleanResponse(result.Message.Content);
                         
@@ -446,6 +456,9 @@ IMPORTANT RULES YOU MUST FOLLOW:
 
                         return cleanedResponse;
                     }
+                    
+                    // No content available in response
+                    System.Diagnostics.Debug.WriteLine("Ollama chat: Response received but no content available");
                 }
                 else
                 {
