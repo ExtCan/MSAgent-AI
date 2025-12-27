@@ -181,15 +181,18 @@ namespace MSAgentAI.UI
             this.Text = "MSAgent AI Settings";
             this.Size = new Size(650, 550);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MaximizeBox = true;
+            this.MinimizeBox = true;
+            this.MinimumSize = new Size(650, 550);
+            this.AutoScroll = true;
 
             // Create main tab control
             _tabControl = new TabControl
             {
                 Location = new Point(10, 10),
-                Size = new Size(615, 450)
+                Size = new Size(615, 450),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
 
             // Create tabs
@@ -208,7 +211,8 @@ namespace MSAgentAI.UI
                 Text = "OK",
                 Location = new Point(365, 470),
                 Size = new Size(80, 30),
-                DialogResult = DialogResult.OK
+                DialogResult = DialogResult.OK,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
             _okButton.Click += OnOkClick;
 
@@ -217,14 +221,16 @@ namespace MSAgentAI.UI
                 Text = "Cancel",
                 Location = new Point(455, 470),
                 Size = new Size(80, 30),
-                DialogResult = DialogResult.Cancel
+                DialogResult = DialogResult.Cancel,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
 
             _applyButton = new Button
             {
                 Text = "Apply",
                 Location = new Point(545, 470),
-                Size = new Size(80, 30)
+                Size = new Size(80, 30),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
             _applyButton.Click += OnApplyClick;
 
