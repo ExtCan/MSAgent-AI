@@ -1,0 +1,253 @@
+name: Build GTA V Script
+
+on:
+  push:
+    paths:
+      - 'GTAVScripts/**'
+      - '.github/workflows/build-gtav-script.yml'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build-gtav-script:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Download ScriptHookVDotNet3
+      shell: powershell
+      run: |
+        # Create a temporary directory for dependencies
+        New-Item -ItemType Directory -Force -Path "GTAVScripts/lib"
+
+        # Download ScriptHookVDotNet3
+        # Using the latest stable release from the official repository
+        
+        # Try to get the latest release, fallback to a known working version
+        $latestReleaseUrl = "https://api.github.com/repos/scripthookvdotnet/scripthookvdotnet/releases/latest"
+        
+        try {
+          Write-Host "Fetching latest ScriptHookVDotNet release info..."
+          $release = Invoke-RestMethod -Uri $latestReleaseUrl -ErrorAction Stop
+          $tag = $release.tag_name
+          # The actual filename is just ScriptHookVDotNet.zip without version number
+          $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/$tag/ScriptHookVDotNet.zip"
+          Write-Host "Found latest release: $tag"
+          Write-Host "Download URL: $url"
+        } catch {
+          Write-Host "Could not fetch latest release info, using fallback v3.6.0"
+          # Fallback to known working version with correct filename
+          $url = "https://github.com/scripthookvdotnet/scripthookvdotnet/releases/download/v3.6.0/ScriptHookVDotNet.zip"
+        }
+        
+        $output = "GTAVScripts/lib/ScriptHookVDotNet.zip"
+
+        Write-Host "Downloading ScriptHookVDotNet3 from: $url"
+        Invoke-WebRequest -Uri $url -OutFile $output -ErrorAction Stop
+
+        Write-Host "Extracting ScriptHookVDotNet3.dll..."
+        Expand-Archive -Path $output -DestinationPath "GTAVScripts/lib" -Force
+
+        # Find and copy the DLL
+        $dll = Get-ChildItem -Path "GTAVScripts/lib" -Filter "ScriptHookVDotNet3.dll" -Recurse | Select-Object -First 1
+        if ($dll) {
+          $targetPath = "GTAVScripts/lib/ScriptHookVDotNet3.dll"
+          # Only copy if source and destination are different
+          if ($dll.FullName -ne (Resolve-Path $targetPath -ErrorAction SilentlyContinue)) {
+            Copy-Item $dll.FullName -Destination $targetPath -Force
+            Write-Host "ScriptHookVDotNet3.dll copied to lib directory"
+          } else {
+            Write-Host "ScriptHookVDotNet3.dll already in correct location"
+          }
+        } else {
+          Write-Error "ScriptHookVDotNet3.dll not found in archive"
+          exit 1
+        }
+
+        # Download NativeUI (required for menu system)
+        Write-Host "Downloading NativeUI..."
+        $nativeUIDownloaded = $false
+        
+        try {
+          Write-Host "Fetching NativeUI release info from GitHub..."
+          $nativeUIRelease = Invoke-RestMethod -Uri "https://api.github.com/repos/Guad/NativeUI/releases/latest" -ErrorAction Stop
+          
+          # Look for zip or dll asset
+          $nativeUIAsset = $nativeUIRelease.assets | Where-Object { $_.name -like "*.zip" -or $_.name -like "*.dll" } | Select-Object -First 1
+          
+          if ($nativeUIAsset) {
+            $nativeUIDownloadUrl = $nativeUIAsset.browser_download_url
+            $nativeUIFileName = $nativeUIAsset.name
+            Write-Host "Found NativeUI release: $($nativeUIRelease.tag_name) - Asset: $nativeUIFileName"
+            
+            $nativeUITempPath = "GTAVScripts/lib/$nativeUIFileName"
+            Invoke-WebRequest -Uri $nativeUIDownloadUrl -OutFile $nativeUITempPath -ErrorAction Stop
+            Write-Host "Downloaded NativeUI asset"
+            
+            # If it's a zip, extract it
+            if ($nativeUIFileName -like "*.zip") {
+              Write-Host "Extracting NativeUI from zip..."
+              Expand-Archive -Path $nativeUITempPath -DestinationPath "GTAVScripts/lib/nativeui_temp" -Force
+              $nativeUIDll = Get-ChildItem -Path "GTAVScripts/lib/nativeui_temp" -Filter "NativeUI.dll" -Recurse | Select-Object -First 1
+              if ($nativeUIDll) {
+                Copy-Item $nativeUIDll.FullName -Destination "GTAVScripts/lib/NativeUI.dll" -Force
+                Write-Host "NativeUI.dll extracted successfully"
+                $nativeUIDownloaded = $true
+              }
+              Remove-Item "GTAVScripts/lib/nativeui_temp" -Recurse -Force -ErrorAction SilentlyContinue
+              Remove-Item $nativeUITempPath -Force -ErrorAction SilentlyContinue
+            } else {
+              # It's already a DLL
+              Move-Item $nativeUITempPath -Destination "GTAVScripts/lib/NativeUI.dll" -Force
+              Write-Host "NativeUI.dll downloaded successfully"
+              $nativeUIDownloaded = $true
+            }
+          }
+        } catch {
+          Write-Host "Could not download from latest release: $($_.Exception.Message)"
+        }
+        
+        # If download failed, try fallback URLs
+        if (-not $nativeUIDownloaded) {
+          Write-Host "Trying fallback NativeUI sources..."
+          $fallbackUrls = @(
+            "https://github.com/Guad/NativeUI/releases/download/v1.9.1/NativeUI.dll",
+            "https://github.com/Guad/NativeUI/releases/download/1.9/NativeUI.dll"
+          )
+          
+          foreach ($fallbackUrl in $fallbackUrls) {
+            try {
+              Write-Host "Trying: $fallbackUrl"
+              Invoke-WebRequest -Uri $fallbackUrl -OutFile "GTAVScripts/lib/NativeUI.dll" -ErrorAction Stop
+              Write-Host "NativeUI.dll downloaded from fallback source"
+              $nativeUIDownloaded = $true
+              break
+            } catch {
+              Write-Host "Fallback failed: $($_.Exception.Message)"
+            }
+          }
+        }
+        
+        # Last resort: check if it's in ScriptHookVDotNet package
+        if (-not $nativeUIDownloaded) {
+          Write-Host "Checking if NativeUI is bundled with ScriptHookVDotNet..."
+          $nativeUI = Get-ChildItem -Path "GTAVScripts/lib" -Filter "NativeUI.dll" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($nativeUI -and $nativeUI.FullName -notlike "*\lib\NativeUI.dll") {
+            Copy-Item $nativeUI.FullName -Destination "GTAVScripts/lib/NativeUI.dll" -Force
+            Write-Host "Found NativeUI.dll in ScriptHookVDotNet package"
+            $nativeUIDownloaded = $true
+          }
+        }
+        
+        # Final verification
+        if (Test-Path "GTAVScripts/lib/NativeUI.dll") {
+          Write-Host "SUCCESS: NativeUI.dll is ready at GTAVScripts/lib/NativeUI.dll"
+        } else {
+          Write-Error "FAILED: NativeUI.dll could not be downloaded or found"
+          Write-Host "Build will fail without NativeUI.dll"
+          exit 1
+        }
+
+
+    - name: Update project reference path
+      shell: powershell
+      run: |
+        # Update the .csproj to use the downloaded DLLs from lib directory
+        $csprojPath = "GTAVScripts/MSAgentGTAV.csproj"
+        $content = Get-Content $csprojPath -Raw
+
+        # Replace the GTAV_DIR references with our lib directory
+        $content = $content -replace '\$\(GTAV_DIR\)\\ScriptHookVDotNet3\.dll', 'lib\ScriptHookVDotNet3.dll'
+        $content = $content -replace '\$\(GTAV_DIR\)\\NativeUI\.dll', 'lib\NativeUI.dll'
+
+        Set-Content $csprojPath $content
+
+        Write-Host "Updated project file to use lib/ScriptHookVDotNet3.dll and lib/NativeUI.dll"
+
+    - name: Build GTA V Script
+      run: msbuild GTAVScripts/MSAgentGTAV.csproj /p:Configuration=Release /p:Platform="x64" /p:OutputPath=bin/Release/
+
+    - name: Verify build output
+      shell: powershell
+      run: |
+        $dllPath = "GTAVScripts/bin/Release/MSAgentGTAV.dll"
+        if (Test-Path $dllPath) {
+          $fileInfo = Get-Item $dllPath
+          Write-Host "Build successful! MSAgentGTAV.dll created"
+          Write-Host "File size: $($fileInfo.Length) bytes"
+          Write-Host "Last modified: $($fileInfo.LastWriteTime)"
+        } else {
+          Write-Error "Build failed - MSAgentGTAV.dll not found"
+          exit 1
+        }
+
+    - name: Upload GTA V Script Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MSAgentGTAV-Script
+        path: |
+          GTAVScripts/bin/Release/MSAgentGTAV.dll
+          GTAVScripts/MSAgentGTAV.ini
+          GTAVScripts/README.md
+          GTAVScripts/QUICKSTART.md
+        retention-days: 90
+        if-no-files-found: error
+
+    - name: Create release package
+      if: success()
+      shell: powershell
+      run: |
+        # Create a release package with documentation
+        New-Item -ItemType Directory -Force -Path "release-package"
+
+        # Copy the DLL
+        Copy-Item "GTAVScripts/bin/Release/MSAgentGTAV.dll" "release-package/"
+        
+        # Copy configuration file
+        Copy-Item "GTAVScripts/MSAgentGTAV.ini" "release-package/"
+
+        # Copy documentation
+        Copy-Item "GTAVScripts/README.md" "release-package/"
+        Copy-Item "GTAVScripts/QUICKSTART.md" "release-package/"
+        Copy-Item "GTAVScripts/TROUBLESHOOTING.md" "release-package/" -ErrorAction SilentlyContinue
+
+        # Create an installation instruction file using Set-Content
+        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss UTC"
+        Set-Content -Path "release-package/INSTALL.txt" -Value "# MSAgentGTAV Installation" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "This package contains the compiled MSAgentGTAV.dll script for GTA V." -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "## Installation Steps:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "1. Ensure you have the following prerequisites installed:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - GTA V (PC version)" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - ScriptHookV - http://www.dev-c.com/gtav/scripthookv/" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - ScriptHookVDotNet v3.x - https://github.com/scripthookvdotnet/scripthookvdotnet/releases" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - MSAgent-AI application running" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "2. Copy MSAgentGTAV.dll and MSAgentGTAV.ini to your GTA V scripts folder:" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - Default location: C:\Program Files\Rockstar Games\Grand Theft Auto V\scripts\" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "   - Create the 'scripts' folder if it doesn't exist" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "3. Launch MSAgent-AI first, then launch GTA V" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "4. Press F9 in-game to open the menu" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "For detailed instructions, see README.md and QUICKSTART.md" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "" -Encoding UTF8
+        Add-Content -Path "release-package/INSTALL.txt" -Value "Built with GitHub Actions on $timestamp" -Encoding UTF8
+
+        Write-Host "Release package created successfully"
+
+    - name: Upload Release Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: MSAgentGTAV-Release-Package
+        path: release-package/
+        retention-days: 90
