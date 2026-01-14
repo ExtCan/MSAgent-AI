@@ -63,7 +63,7 @@ namespace MSAgentAI.AI
             Timestamp = DateTime.Now;
             LastAccessed = DateTime.Now;
             AccessCount = 0;
-            Tags = new string[0];
+            Tags = Array.Empty<string>();
         }
 
         /// <summary>

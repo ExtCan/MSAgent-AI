@@ -399,8 +399,9 @@ IMPORTANT RULES YOU MUST FOLLOW:
                 else if (userMessage.Length > 100)
                 {
                     importance = 5.5;
-                    memoryContent = userMessage.Length > 200 
-                        ? $"Discussion: {userMessage.Substring(0, 197)}..." 
+                    const int maxContentLength = 200;
+                    memoryContent = userMessage.Length > maxContentLength 
+                        ? $"Discussion: {userMessage.Substring(0, maxContentLength - 3)}..." 
                         : $"Discussion: {userMessage}";
                     category = "conversation";
                 }

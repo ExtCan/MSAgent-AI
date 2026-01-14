@@ -270,7 +270,17 @@ namespace MSAgentAI.AI
             var importedMemories = JsonConvert.DeserializeObject<List<Memory>>(json);
             if (importedMemories != null)
             {
-                _memories.AddRange(importedMemories);
+                // Avoid duplicates by checking if a memory with the same ID already exists
+                var existingIds = new HashSet<string>(_memories.Select(m => m.Id));
+                
+                foreach (var memory in importedMemories)
+                {
+                    if (!existingIds.Contains(memory.Id))
+                    {
+                        _memories.Add(memory);
+                    }
+                }
+                
                 SaveMemories();
             }
         }
