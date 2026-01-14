@@ -26,6 +26,12 @@ namespace MSAgentAI.AI
         
         // Available animations for AI to use
         public List<string> AvailableAnimations { get; set; } = new List<string>();
+        
+        // Memory system
+        public MemoryManager MemoryManager { get; set; }
+        
+        // User description for context
+        public string UserDescription { get; set; } = "";
 
         private List<ChatMessage> _conversationHistory = new List<ChatMessage>();
 
@@ -107,6 +113,29 @@ IMPORTANT RULES YOU MUST FOLLOW:
             {
                 prompt.AppendLine(PersonalityPrompt);
                 prompt.AppendLine();
+            }
+            
+            // Add user description if available
+            if (!string.IsNullOrEmpty(UserDescription))
+            {
+                prompt.AppendLine("USER INFORMATION:");
+                prompt.AppendLine(UserDescription);
+                prompt.AppendLine();
+            }
+            
+            // Add relevant memories if memory system is enabled
+            if (MemoryManager != null && MemoryManager.Enabled)
+            {
+                var memories = MemoryManager.GetRelevantMemories(10);
+                if (memories.Count > 0)
+                {
+                    prompt.AppendLine("RELEVANT MEMORIES:");
+                    foreach (var memory in memories)
+                    {
+                        prompt.AppendLine($"- {memory.Content}");
+                    }
+                    prompt.AppendLine();
+                }
             }
             
             prompt.AppendLine(ENFORCED_RULES);
@@ -225,6 +254,9 @@ IMPORTANT RULES YOU MUST FOLLOW:
                         // Add to conversation history
                         _conversationHistory.Add(new ChatMessage { Role = "user", Content = message });
                         _conversationHistory.Add(new ChatMessage { Role = "assistant", Content = cleanedResponse });
+                        
+                        // Try to create a memory from this conversation
+                        await TryCreateMemoryAsync(message, cleanedResponse, cancellationToken);
 
                         return cleanedResponse;
                     }
@@ -306,6 +338,83 @@ IMPORTANT RULES YOU MUST FOLLOW:
         public void ClearHistory()
         {
             _conversationHistory.Clear();
+        }
+
+        /// <summary>
+        /// Attempts to create a memory from a conversation exchange
+        /// Uses AI to determine if the conversation contains memorable information
+        /// </summary>
+        private async Task TryCreateMemoryAsync(string userMessage, string assistantResponse, CancellationToken cancellationToken)
+        {
+            if (MemoryManager == null || !MemoryManager.Enabled)
+                return;
+
+            try
+            {
+                // Use a simple heuristic to determine if memory should be created
+                // Look for keywords that indicate memorable information
+                var lowerUser = userMessage.ToLower();
+                var lowerAssistant = assistantResponse.ToLower();
+                
+                double importance = 0;
+                string memoryContent = null;
+                string category = "general";
+                
+                // User sharing personal information (high importance)
+                if (lowerUser.Contains("i am") || lowerUser.Contains("i'm") || 
+                    lowerUser.Contains("my name") || lowerUser.Contains("i like") || 
+                    lowerUser.Contains("i love") || lowerUser.Contains("i hate") ||
+                    lowerUser.Contains("i enjoy") || lowerUser.Contains("i prefer"))
+                {
+                    importance = 8.0;
+                    memoryContent = $"User said: {userMessage}";
+                    category = "user_info";
+                }
+                // Preferences and settings
+                else if (lowerUser.Contains("prefer") || lowerUser.Contains("favorite") || 
+                         lowerUser.Contains("don't like") || lowerUser.Contains("always") ||
+                         lowerUser.Contains("never"))
+                {
+                    importance = 7.0;
+                    memoryContent = $"User preference: {userMessage}";
+                    category = "preference";
+                }
+                // Important events or facts mentioned
+                else if (lowerUser.Contains("remember") || lowerUser.Contains("important") ||
+                         lowerUser.Contains("note that") || lowerUser.Contains("keep in mind"))
+                {
+                    importance = 9.0;
+                    memoryContent = $"Important: {userMessage}";
+                    category = "important";
+                }
+                // Questions about past conversations (shows recurring topics)
+                else if (lowerUser.Contains("did i") || lowerUser.Contains("have i") ||
+                         lowerUser.Contains("we talked") || lowerUser.Contains("you mentioned"))
+                {
+                    importance = 6.0;
+                    memoryContent = $"Recurring topic: {userMessage}";
+                    category = "recurring";
+                }
+                // Long messages often contain more information
+                else if (userMessage.Length > 100)
+                {
+                    importance = 5.5;
+                    memoryContent = userMessage.Length > 200 
+                        ? $"Discussion: {userMessage.Substring(0, 197)}..." 
+                        : $"Discussion: {userMessage}";
+                    category = "conversation";
+                }
+                
+                // Add memory if importance meets threshold
+                if (importance > 0 && memoryContent != null)
+                {
+                    MemoryManager.AddMemory(memoryContent, importance, category);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error creating memory: {ex.Message}");
+            }
         }
 
         public void Dispose()

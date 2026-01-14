@@ -405,6 +405,35 @@ namespace MSAgentAI.UI
                 Location = new Point(560, 160),
                 Size = new Size(40, 20)
             };
+            
+            // User Description field
+            var descLabel = new Label
+            {
+                Text = "Describe yourself to the AI:",
+                Location = new Point(405, 230),
+                Size = new Size(180, 20)
+            };
+            
+            TextBox _userDescriptionTextBox = new TextBox
+            {
+                Location = new Point(405, 250),
+                Size = new Size(190, 60),
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
+                Name = "userDescriptionTextBox"
+            };
+            
+            var descHintLabel = new Label
+            {
+                Text = "e.g., interests, occupation, preferences",
+                Location = new Point(405, 312),
+                Size = new Size(190, 15),
+                ForeColor = Color.Gray,
+                Font = new Font(this.Font.FontFamily, 7.5f)
+            };
+            
+            // Add user description control to the tab
+            _agentTab.Controls.Add(_userDescriptionTextBox);
 
             _agentTab.Controls.AddRange(new Control[]
             {
@@ -412,7 +441,8 @@ namespace MSAgentAI.UI
                 nameLabel, _userNameTextBox, pronunciationLabel, _userNamePronunciationTextBox, _testNameButton, nameHintLabel,
                 listLabel, _characterListBox, _previewButton, _selectButton, _characterInfoLabel,
                 animLabel, _animationsListBox, _playAnimationButton, empHintLabel,
-                agentSizeLabel, _agentSizeTrackBar, _agentSizeValueLabel
+                agentSizeLabel, _agentSizeTrackBar, _agentSizeValueLabel,
+                descLabel, descHintLabel
             });
         }
 
@@ -1008,6 +1038,60 @@ namespace MSAgentAI.UI
                 Size = new Size(580, 20),
                 ForeColor = Color.Gray
             };
+            
+            // Memory settings section
+            var memoryLabel = new Label
+            {
+                Text = "Memory System (Experimental):",
+                Location = new Point(15, 405),
+                Size = new Size(200, 20),
+                Font = new Font(this.Font, FontStyle.Bold)
+            };
+            
+            CheckBox _enableMemoriesCheckBox = new CheckBox
+            {
+                Text = "Enable AI Memories",
+                Location = new Point(15, 430),
+                Size = new Size(200, 25),
+                Name = "enableMemoriesCheckBox"
+            };
+            
+            var memoryThresholdLabel = new Label
+            {
+                Text = "Memory Threshold (0.1 = easy, 10 = hard):",
+                Location = new Point(230, 433),
+                Size = new Size(230, 20)
+            };
+            
+            TrackBar _memoryThresholdTrackBar = new TrackBar
+            {
+                Location = new Point(460, 425),
+                Size = new Size(100, 45),
+                Minimum = 1,
+                Maximum = 100,
+                TickFrequency = 10,
+                Value = 50,
+                Name = "memoryThresholdTrackBar"
+            };
+            
+            Label _memoryThresholdValueLabel = new Label
+            {
+                Text = "5.0",
+                Location = new Point(565, 433),
+                Size = new Size(30, 20),
+                Name = "memoryThresholdValueLabel"
+            };
+            
+            _memoryThresholdTrackBar.ValueChanged += (s, e) =>
+            {
+                var value = _memoryThresholdTrackBar.Value / 10.0;
+                _memoryThresholdValueLabel.Text = value.ToString("F1");
+            };
+            
+            // Add controls to track for later use
+            _ollamaTab.Controls.Add(_enableMemoriesCheckBox);
+            _ollamaTab.Controls.Add(_memoryThresholdTrackBar);
+            _ollamaTab.Controls.Add(_memoryThresholdValueLabel);
 
             _ollamaTab.Controls.AddRange(new Control[]
             {
@@ -1019,7 +1103,8 @@ namespace MSAgentAI.UI
                 _enableChatCheckBox, _enableRandomDialogCheckBox,
                 chanceLabel, _randomChanceNumeric,
                 _enablePrewrittenIdleCheckBox, prewrittenChanceLabel, _prewrittenIdleChanceNumeric,
-                promptsLabel
+                promptsLabel,
+                memoryLabel, memoryThresholdLabel
             });
         }
 
@@ -1226,6 +1311,12 @@ namespace MSAgentAI.UI
             _characterPathTextBox.Text = _settings.CharacterPath;
             _userNameTextBox.Text = _settings.UserName;
             _userNamePronunciationTextBox.Text = _settings.UserNamePronunciation;
+            
+            // User description
+            var userDescTextBox = _agentTab.Controls.Find("userDescriptionTextBox", false).FirstOrDefault() as TextBox;
+            if (userDescTextBox != null)
+                userDescTextBox.Text = _settings.UserDescription ?? "";
+            
             RefreshCharacterList();
 
             // Voice settings
@@ -1255,6 +1346,19 @@ namespace MSAgentAI.UI
             _enablePrewrittenIdleCheckBox.Checked = _settings.EnablePrewrittenIdle;
             _prewrittenIdleChanceNumeric.Value = Math.Max(_prewrittenIdleChanceNumeric.Minimum,
                 Math.Min(_prewrittenIdleChanceNumeric.Maximum, _settings.PrewrittenIdleChance));
+            
+            // Memory settings
+            var enableMemoriesCheckBox = _ollamaTab.Controls.Find("enableMemoriesCheckBox", false).FirstOrDefault() as CheckBox;
+            if (enableMemoriesCheckBox != null)
+                enableMemoriesCheckBox.Checked = _settings.EnableMemories;
+                
+            var memoryThresholdTrackBar = _ollamaTab.Controls.Find("memoryThresholdTrackBar", false).FirstOrDefault() as TrackBar;
+            var memoryThresholdValueLabel = _ollamaTab.Controls.Find("memoryThresholdValueLabel", false).FirstOrDefault() as Label;
+            if (memoryThresholdTrackBar != null && memoryThresholdValueLabel != null)
+            {
+                memoryThresholdTrackBar.Value = (int)(_settings.MemoryThreshold * 10);
+                memoryThresholdValueLabel.Text = _settings.MemoryThreshold.ToString("F1");
+            }
 
             // Theme
             int themeIndex = _themeComboBox.Items.IndexOf(_settings.UITheme);
@@ -1301,6 +1405,12 @@ namespace MSAgentAI.UI
             _settings.CharacterPath = _characterPathTextBox.Text;
             _settings.UserName = _userNameTextBox.Text;
             _settings.UserNamePronunciation = _userNamePronunciationTextBox.Text;
+            
+            // User description
+            var userDescTextBox = _agentTab.Controls.Find("userDescriptionTextBox", false).FirstOrDefault() as TextBox;
+            if (userDescTextBox != null)
+                _settings.UserDescription = userDescTextBox.Text;
+            
             if (_characterListBox.SelectedItem is CharacterItem selected)
             {
                 _settings.SelectedCharacterFile = selected.FilePath;
@@ -1331,6 +1441,15 @@ namespace MSAgentAI.UI
             _settings.RandomDialogChance = (int)_randomChanceNumeric.Value;
             _settings.EnablePrewrittenIdle = _enablePrewrittenIdleCheckBox.Checked;
             _settings.PrewrittenIdleChance = (int)_prewrittenIdleChanceNumeric.Value;
+            
+            // Memory settings
+            var enableMemoriesCheckBox = _ollamaTab.Controls.Find("enableMemoriesCheckBox", false).FirstOrDefault() as CheckBox;
+            if (enableMemoriesCheckBox != null)
+                _settings.EnableMemories = enableMemoriesCheckBox.Checked;
+                
+            var memoryThresholdTrackBar = _ollamaTab.Controls.Find("memoryThresholdTrackBar", false).FirstOrDefault() as TrackBar;
+            if (memoryThresholdTrackBar != null)
+                _settings.MemoryThreshold = memoryThresholdTrackBar.Value / 10.0;
 
             // Theme
             _settings.UITheme = _themeComboBox.SelectedItem?.ToString() ?? "Default";
