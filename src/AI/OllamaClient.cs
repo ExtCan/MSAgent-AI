@@ -17,6 +17,9 @@ namespace MSAgentAI.AI
     {
         private readonly HttpClient _httpClient;
         private bool _disposed;
+        
+        // Compiled regex for asterisk action detection (performance optimization)
+        private static readonly Regex AsteriskActionRegex = new Regex(@"\*([^*]+)\*", RegexOptions.Compiled);
 
         public string BaseUrl { get; set; } = "http://localhost:11434";
         public string Model { get; set; } = "llama2";
@@ -205,8 +208,8 @@ IMPORTANT RULES YOU MUST FOLLOW:
                 return message;
 
             // Match text wrapped in asterisks: *action text*
-            // This regex looks for asterisk pairs with content between them
-            var matches = Regex.Matches(message, @"\*([^*]+)\*");
+            // Use compiled regex for better performance
+            var matches = AsteriskActionRegex.Matches(message);
             
             if (matches.Count == 0)
                 return message;
@@ -228,15 +231,8 @@ IMPORTANT RULES YOU MUST FOLLOW:
                 // Only process non-empty action text
                 if (actionText.Length > 0)
                 {
-                    // Capitalize first letter (handle single character case safely)
-                    if (actionText.Length == 1)
-                    {
-                        actionText = char.ToUpper(actionText[0]).ToString();
-                    }
-                    else
-                    {
-                        actionText = char.ToUpper(actionText[0]) + actionText.Substring(1);
-                    }
+                    // Capitalize first letter
+                    actionText = char.ToUpper(actionText[0]) + (actionText.Length > 1 ? actionText.Substring(1) : "");
                     
                     // Add period if not already ending with punctuation
                     if (!actionText.EndsWith(".") && !actionText.EndsWith("!") && !actionText.EndsWith("?"))
