@@ -109,6 +109,13 @@ dotnet build
 6. Use **Manage Memories** to view and manage what the AI remembers
 7. Use Speak menu to make the agent tell jokes, share thoughts, or say custom text
 
+### Asterisk Action Prompts
+
+In the chat interface, you can use asterisks to instruct the AI to perform actions:
+- Type `*you decide to tell a story*` to make the character decide to tell a story
+- Type `Hello *you wave* how are you?` to make the character wave while greeting
+- Asterisks are automatically transformed into action instructions for the AI
+
 ## Project Structure
 
 ```
