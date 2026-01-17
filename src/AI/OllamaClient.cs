@@ -219,18 +219,24 @@ IMPORTANT RULES YOU MUST FOLLOW:
                 // Add any text before this match
                 if (match.Index > lastIndex)
                 {
-                    transformedMessage.Append(message.Substring(lastIndex, match.Index - lastIndex));
+                    transformedMessage.Append(message, lastIndex, match.Index - lastIndex);
                 }
 
                 // Extract the action text (without asterisks)
                 string actionText = match.Groups[1].Value.Trim();
                 
-                // Transform the action into an instruction
-                // Convert to sentence case if needed
+                // Only process non-empty action text
                 if (actionText.Length > 0)
                 {
-                    // Capitalize first letter
-                    actionText = char.ToUpper(actionText[0]) + actionText.Substring(1);
+                    // Capitalize first letter (handle single character case safely)
+                    if (actionText.Length == 1)
+                    {
+                        actionText = char.ToUpper(actionText[0]).ToString();
+                    }
+                    else
+                    {
+                        actionText = char.ToUpper(actionText[0]) + actionText.Substring(1);
+                    }
                     
                     // Add period if not already ending with punctuation
                     if (!actionText.EndsWith(".") && !actionText.EndsWith("!") && !actionText.EndsWith("?"))
@@ -247,7 +253,7 @@ IMPORTANT RULES YOU MUST FOLLOW:
             // Add any remaining text after the last match
             if (lastIndex < message.Length)
             {
-                transformedMessage.Append(message.Substring(lastIndex));
+                transformedMessage.Append(message, lastIndex, message.Length - lastIndex);
             }
 
             return transformedMessage.ToString().Trim();
