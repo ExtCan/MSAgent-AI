@@ -195,12 +195,74 @@ IMPORTANT RULES YOU MUST FOLLOW:
         }
 
         /// <summary>
+        /// Transforms asterisk-wrapped actions in user input into instructions for the AI.
+        /// For example: "*you decide to tell a story*" becomes "You decide to tell a story."
+        /// This allows users to prompt the AI to perform specific actions.
+        /// </summary>
+        public static string TransformAsteriskActions(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+                return message;
+
+            // Match text wrapped in asterisks: *action text*
+            // This regex looks for asterisk pairs with content between them
+            var matches = Regex.Matches(message, @"\*([^*]+)\*");
+            
+            if (matches.Count == 0)
+                return message;
+
+            var transformedMessage = new StringBuilder();
+            int lastIndex = 0;
+
+            foreach (Match match in matches)
+            {
+                // Add any text before this match
+                if (match.Index > lastIndex)
+                {
+                    transformedMessage.Append(message.Substring(lastIndex, match.Index - lastIndex));
+                }
+
+                // Extract the action text (without asterisks)
+                string actionText = match.Groups[1].Value.Trim();
+                
+                // Transform the action into an instruction
+                // Convert to sentence case if needed
+                if (actionText.Length > 0)
+                {
+                    // Capitalize first letter
+                    actionText = char.ToUpper(actionText[0]) + actionText.Substring(1);
+                    
+                    // Add period if not already ending with punctuation
+                    if (!actionText.EndsWith(".") && !actionText.EndsWith("!") && !actionText.EndsWith("?"))
+                    {
+                        actionText += ".";
+                    }
+                    
+                    transformedMessage.Append(actionText);
+                }
+
+                lastIndex = match.Index + match.Length;
+            }
+
+            // Add any remaining text after the last match
+            if (lastIndex < message.Length)
+            {
+                transformedMessage.Append(message.Substring(lastIndex));
+            }
+
+            return transformedMessage.ToString().Trim();
+        }
+
+        /// <summary>
         /// Sends a chat message to Ollama and gets a response
         /// </summary>
         public async Task<string> ChatAsync(string message, CancellationToken cancellationToken = default)
         {
             try
             {
+                // Transform asterisk-wrapped actions into instructions
+                string transformedMessage = TransformAsteriskActions(message);
+                
                 // Build the messages list with personality and history
                 var messages = new List<object>();
 
@@ -222,8 +284,8 @@ IMPORTANT RULES YOU MUST FOLLOW:
                     });
                 }
 
-                // Add the new user message
-                messages.Add(new { role = "user", content = message });
+                // Add the new user message (transformed)
+                messages.Add(new { role = "user", content = transformedMessage });
 
                 var request = new
                 {
@@ -251,8 +313,8 @@ IMPORTANT RULES YOU MUST FOLLOW:
                     {
                         string cleanedResponse = CleanResponse(result.Message.Content);
                         
-                        // Add to conversation history
-                        _conversationHistory.Add(new ChatMessage { Role = "user", Content = message });
+                        // Add to conversation history (use transformed message)
+                        _conversationHistory.Add(new ChatMessage { Role = "user", Content = transformedMessage });
                         _conversationHistory.Add(new ChatMessage { Role = "assistant", Content = cleanedResponse });
                         
                         // Try to create a memory from this conversation
@@ -286,6 +348,9 @@ IMPORTANT RULES YOU MUST FOLLOW:
         public async Task<string> GenerateRandomDialogAsync(string customPrompt = null, CancellationToken cancellationToken = default)
         {
             string prompt = customPrompt ?? "Say something short, interesting, and in-character. Use /emp/ for emphasis and optionally include an &&animation trigger.";
+            
+            // Transform asterisk-wrapped actions if present in custom prompt
+            prompt = TransformAsteriskActions(prompt);
 
             try
             {
