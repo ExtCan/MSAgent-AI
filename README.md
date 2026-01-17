@@ -8,6 +8,9 @@ A Windows desktop friend application inspired by BonziBUDDY and CyberBuddy, usin
 - **SAPI4 Text-to-Speech**: Full SAPI4 voice support with configurable Speed, Pitch, and Volume
 - **Customizable Lines**: Edit welcome, idle, moved, exit, clicked, jokes, and thoughts lines
 - **Ollama AI Integration**: Connect to Ollama for dynamic AI-powered conversations with personality prompting
+- **User Profile**: Describe yourself to the AI for more personalized conversations
+- **AI Memory System**: The AI remembers important information from conversations (with configurable threshold)
+- **Memory Management**: View, edit, add, remove, import/export AI memories
 - **Random Dialog**: Configurable random dialog feature (1 in 9000 chance per second by default) that sends custom prompts to Ollama
 - **User-Friendly GUI**: System tray application with comprehensive settings panel
 
@@ -54,9 +57,20 @@ Access via tray menu: **View Log...**
 - **Ollama URL**: Default is `http://localhost:11434`
 - **Model**: Select from available Ollama models
 - **Personality Prompt**: Customize the AI's personality
+- **User Description**: Describe yourself to the AI for personalized responses
 - **Enable Chat**: Toggle AI chat functionality
 - **Random Dialog**: Enable random AI-generated dialog
 - **Random Chance**: Set the chance of random dialog (1 in N per second)
+- **Enable Memories**: Toggle the AI memory system
+- **Memory Threshold**: Set how easily memories are created (0.1 = easy, 10 = hard)
+
+### Memory Management
+Access via the system tray menu: **Manage Memories...**
+- View all stored AI memories
+- Search and filter memories by category
+- Add, edit, or delete memories manually
+- Export/import memories for backup or migration
+- View statistics (total memories, average importance, categories)
 
 ### Pipeline Settings
 - **Protocol**: Choose between Named Pipe (local) or TCP Socket (network)
@@ -89,8 +103,11 @@ dotnet build
 
 1. Right-click the system tray icon to access the menu
 2. Go to Settings to configure your agent, voice, and AI options
-3. Use Chat to have conversations with the agent (requires Ollama)
-4. Use Speak menu to make the agent tell jokes, share thoughts, or say custom text
+3. **Agent Tab**: Set your name and describe yourself to the AI
+4. **Ollama AI Tab**: Enable memories and set the memory threshold
+5. Use Chat to have conversations with the agent (requires Ollama)
+6. Use **Manage Memories** to view and manage what the AI remembers
+7. Use Speak menu to make the agent tell jokes, share thoughts, or say custom text
 
 ## Project Structure
 
@@ -102,14 +119,17 @@ src/
 ├── Voice/
 │   └── Sapi4Manager.cs    # SAPI4 TTS management
 ├── AI/
-│   └── OllamaClient.cs    # Ollama API client
+│   ├── OllamaClient.cs    # Ollama API client
+│   ├── Memory.cs          # Memory model
+│   └── MemoryManager.cs   # Memory system management
 ├── Config/
 │   └── AppSettings.cs     # Configuration and persistence
 ├── UI/
-│   ├── MainForm.cs        # Main application form
-│   ├── SettingsForm.cs    # Settings dialog
-│   ├── ChatForm.cs        # AI chat dialog
-│   └── InputDialog.cs     # Simple input dialog
+│   ├── MainForm.cs          # Main application form
+│   ├── SettingsForm.cs      # Settings dialog
+│   ├── ChatForm.cs          # AI chat dialog
+│   ├── MemoryManagerForm.cs # Memory management UI
+│   └── InputDialog.cs       # Simple input dialog
 └── Program.cs             # Application entry point
 ```
 

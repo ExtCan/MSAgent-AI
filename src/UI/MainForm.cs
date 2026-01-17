@@ -25,6 +25,7 @@ namespace MSAgentAI.UI
         private AgentManager _agentManager;
         private Sapi4Manager _voiceManager;
         private OllamaClient _ollamaClient;
+        private MemoryManager _memoryManager;
         private AppSettings _settings;
         private SpeechRecognitionManager _speechRecognition;
         private PipelineServer _pipelineServer;
@@ -137,6 +138,17 @@ namespace MSAgentAI.UI
                 Model = _settings.OllamaModel,
                 PersonalityPrompt = _settings.PersonalityPrompt
             };
+            
+            // Initialize memory manager
+            _memoryManager = new MemoryManager
+            {
+                Enabled = _settings.EnableMemories,
+                MemoryThreshold = _settings.MemoryThreshold
+            };
+            
+            // Link memory manager and user description to Ollama client
+            _ollamaClient.MemoryManager = _memoryManager;
+            _ollamaClient.UserDescription = _settings.UserDescription;
 
             _cancellationTokenSource = new CancellationTokenSource();
         }
@@ -162,6 +174,7 @@ namespace MSAgentAI.UI
             speakItem.DropDownItems.AddRange(new ToolStripItem[] { speakJokeItem, speakThoughtItem, speakCustomItem, askOllamaItem });
 
             var separatorItem2 = new ToolStripSeparator();
+            var memoryManagerItem = new ToolStripMenuItem("Manage Memories...", null, OnManageMemories);
             var viewLogItem = new ToolStripMenuItem("View Log...", null, OnViewLog);
             var aboutItem = new ToolStripMenuItem("About", null, OnAbout);
             var exitItem = new ToolStripMenuItem("Exit", null, OnExit);
@@ -176,6 +189,7 @@ namespace MSAgentAI.UI
                 speakItem,
                 pokeItem,
                 separatorItem2,
+                memoryManagerItem,
                 viewLogItem,
                 aboutItem,
                 exitItem
@@ -419,6 +433,14 @@ namespace MSAgentAI.UI
             using (var chatForm = new ChatForm(_ollamaClient, _agentManager, _settings))
             {
                 chatForm.ShowDialog();
+            }
+        }
+        
+        private void OnManageMemories(object sender, EventArgs e)
+        {
+            using (var memoryForm = new MemoryManagerForm(_memoryManager, _settings))
+            {
+                memoryForm.ShowDialog();
             }
         }
 
@@ -848,12 +870,20 @@ namespace MSAgentAI.UI
                 _ollamaClient.BaseUrl = _settings.OllamaUrl;
                 _ollamaClient.Model = _settings.OllamaModel;
                 _ollamaClient.PersonalityPrompt = _settings.PersonalityPrompt;
+                _ollamaClient.UserDescription = _settings.UserDescription;
                 
                 // Update available animations for AI to use
                 if (_agentManager?.IsLoaded == true)
                 {
                     _ollamaClient.AvailableAnimations = _agentManager.GetAnimations();
                 }
+            }
+            
+            // Update memory manager settings
+            if (_memoryManager != null)
+            {
+                _memoryManager.Enabled = _settings.EnableMemories;
+                _memoryManager.MemoryThreshold = _settings.MemoryThreshold;
             }
 
             // Update random dialog timer

@@ -19,6 +19,9 @@ namespace MSAgentAI.Config
         public string UserName { get; set; } = "Friend";
         public string UserNamePronunciation { get; set; } = "Friend";
         
+        // User description for AI context
+        public string UserDescription { get; set; } = "";
+        
         // Voice settings
         public string SelectedVoiceId { get; set; } = "";
         public int VoiceSpeed { get; set; } = 150;
@@ -38,6 +41,10 @@ namespace MSAgentAI.Config
         public string OllamaModel { get; set; } = "llama2";
         public string PersonalityPrompt { get; set; } = "You are a helpful and friendly desktop companion. Keep responses short and conversational.";
         public bool EnableOllamaChat { get; set; } = false;
+        
+        // Memory system settings
+        public bool EnableMemories { get; set; } = false;
+        public double MemoryThreshold { get; set; } = 5.0; // 0.1 to 10.0 - threshold for creating memories
 
         // Pipeline settings
         public string PipelineProtocol { get; set; } = "NamedPipe"; // "NamedPipe" or "TCP"
