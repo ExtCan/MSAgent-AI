@@ -97,6 +97,17 @@ Commands are sent as plain text lines. Each command receives a response.
 | `PING` | Check if the server is running | `PING` |
 | `VERSION` | Get the MSAgent-AI version | `VERSION` |
 
+### Asterisk Action Prompts
+
+When using the `CHAT` command, you can wrap text in asterisks to indicate actions the character should perform. The asterisks will be removed and the text will be transformed into an instruction for the AI.
+
+**Examples:**
+- `CHAT:*you decide to tell a story*` → AI receives: "You decide to tell a story."
+- `CHAT:Hello *you wave at the user* how are you?` → AI receives: "Hello You wave at the user. how are you?"
+- `CHAT:*you start dancing*` → AI receives: "You start dancing."
+
+This feature works in both the chat interface and the Pipeline's CHAT command.
+
 ### Response Format
 - `OK:COMMAND` - Command was executed successfully
 - `ERROR:message` - Command failed with error message
