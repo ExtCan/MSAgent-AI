@@ -598,17 +598,16 @@ namespace MSAgentAI.Agent
         }
 
         /// <summary>
-        /// Makes the character speak text sentence by sentence with delays
+        /// Makes the character speak text sentence by sentence
         /// </summary>
-        public void SpeakSentences(List<string> sentences, int delayMs = 500)
+        public void SpeakSentences(List<string> sentences)
         {
             EnsureLoaded();
             if (sentences == null || sentences.Count == 0)
                 return;
 
             // MS Agent Speak queues the text, so we can just call Speak for each sentence
-            // and it will display them sequentially. The delay parameter is kept for future
-            // enhancements but not used to avoid blocking the UI thread.
+            // and it will display them sequentially in separate speech bubbles.
             foreach (var sentence in sentences)
             {
                 if (!string.IsNullOrEmpty(sentence))

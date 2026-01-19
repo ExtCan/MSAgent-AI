@@ -385,7 +385,7 @@ namespace MSAgentAI.UI
             if (_settings.TruncateSpeech)
             {
                 var sentences = AppSettings.SplitIntoSentences(cleanText);
-                _agentManager.SpeakSentences(sentences, 500);
+                _agentManager.SpeakSentences(sentences);
             }
             else
             {
