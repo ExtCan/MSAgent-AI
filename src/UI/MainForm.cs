@@ -381,8 +381,16 @@ namespace MSAgentAI.UI
                 _agentManager.PlayAnimation(defaultAnimation);
             }
             
-            // Speak the processed text
-            _agentManager.Speak(cleanText);
+            // Speak the processed text - check if truncation is enabled
+            if (_settings.TruncateSpeech)
+            {
+                var sentences = AppSettings.SplitIntoSentences(cleanText);
+                _agentManager.SpeakSentences(sentences);
+            }
+            else
+            {
+                _agentManager.Speak(cleanText);
+            }
         }
         
         /// <summary>

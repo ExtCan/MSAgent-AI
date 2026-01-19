@@ -598,6 +598,26 @@ namespace MSAgentAI.Agent
         }
 
         /// <summary>
+        /// Makes the character speak text sentence by sentence
+        /// </summary>
+        public void SpeakSentences(List<string> sentences)
+        {
+            EnsureLoaded();
+            if (sentences == null || sentences.Count == 0)
+                return;
+
+            // MS Agent Speak queues the text, so we can just call Speak for each sentence
+            // and it will display them sequentially in separate speech bubbles.
+            foreach (var sentence in sentences)
+            {
+                if (!string.IsNullOrEmpty(sentence))
+                {
+                    _character.Speak(sentence, null);
+                }
+            }
+        }
+
+        /// <summary>
         /// Makes the character think the specified text (shows in thought balloon)
         /// </summary>
         public void Think(string text)

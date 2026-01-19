@@ -66,6 +66,7 @@ namespace MSAgentAI.UI
         private Label _confidenceValueLabel;
         private TrackBar _silenceTrackBar;
         private Label _silenceValueLabel;
+        private CheckBox _truncateSpeechCheckBox;
 
         // Ollama controls
         private TextBox _ollamaUrlTextBox;
@@ -178,15 +179,15 @@ namespace MSAgentAI.UI
             this.Text = "MSAgent AI Settings";
             this.Size = new Size(650, 550);
             this.StartPosition = FormStartPosition.CenterScreen;
-            this.FormBorderStyle = FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
+            this.FormBorderStyle = FormBorderStyle.Sizable;
+            this.MinimumSize = new Size(650, 550);
 
             // Create main tab control
             _tabControl = new TabControl
             {
                 Location = new Point(10, 10),
-                Size = new Size(615, 450)
+                Size = new Size(615, 450),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
 
             // Create tabs
@@ -205,7 +206,8 @@ namespace MSAgentAI.UI
                 Text = "OK",
                 Location = new Point(365, 470),
                 Size = new Size(80, 30),
-                DialogResult = DialogResult.OK
+                DialogResult = DialogResult.OK,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
             _okButton.Click += OnOkClick;
 
@@ -214,14 +216,16 @@ namespace MSAgentAI.UI
                 Text = "Cancel",
                 Location = new Point(455, 470),
                 Size = new Size(80, 30),
-                DialogResult = DialogResult.Cancel
+                DialogResult = DialogResult.Cancel,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
 
             _applyButton = new Button
             {
                 Text = "Apply",
                 Location = new Point(545, 470),
-                Size = new Size(80, 30)
+                Size = new Size(80, 30),
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Right
             };
             _applyButton.Click += OnApplyClick;
 
@@ -645,6 +649,14 @@ namespace MSAgentAI.UI
                 ForeColor = Color.Gray,
                 Font = new Font(this.Font.FontFamily, 7.5f)
             };
+            
+            // Truncate speech checkbox
+            _truncateSpeechCheckBox = new CheckBox
+            {
+                Text = "Sentence-by-sentence speech (truncate long speeches into separate bubbles)",
+                Location = new Point(15, 370),
+                Size = new Size(550, 25)
+            };
 
             _voiceTab.Controls.AddRange(new Control[]
             {
@@ -656,7 +668,8 @@ namespace MSAgentAI.UI
                 callModeLabel,
                 micLabel, _microphoneComboBox,
                 confidenceLabel, _confidenceTrackBar, _confidenceValueLabel, confidenceHint,
-                silenceLabel, _silenceTrackBar, _silenceValueLabel, silenceHint
+                silenceLabel, _silenceTrackBar, _silenceValueLabel, silenceHint,
+                _truncateSpeechCheckBox
             });
         }
 
@@ -1334,6 +1347,9 @@ namespace MSAgentAI.UI
             // Agent size
             _agentSizeTrackBar.Value = Math.Max(_agentSizeTrackBar.Minimum, Math.Min(_agentSizeTrackBar.Maximum, _settings.AgentSize));
             _agentSizeValueLabel.Text = _agentSizeTrackBar.Value.ToString() + "%";
+            
+            // Truncate speech
+            _truncateSpeechCheckBox.Checked = _settings.TruncateSpeech;
 
             // Ollama settings
             _ollamaUrlTextBox.Text = _settings.OllamaUrl;
@@ -1431,6 +1447,9 @@ namespace MSAgentAI.UI
             
             // Agent size
             _settings.AgentSize = _agentSizeTrackBar.Value;
+            
+            // Truncate speech
+            _settings.TruncateSpeech = _truncateSpeechCheckBox.Checked;
 
             // Ollama settings
             _settings.OllamaUrl = _ollamaUrlTextBox.Text;

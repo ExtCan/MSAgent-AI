@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 namespace MSAgentAI.Config
@@ -153,6 +154,9 @@ namespace MSAgentAI.Config
         // Agent size (100 = normal, 50 = half, 200 = double)
         public int AgentSize { get; set; } = 100;
         
+        // Speech truncation (sentence by sentence)
+        public bool TruncateSpeech { get; set; } = false;
+        
         // Idle animation spacing (in idle timer ticks - higher = less frequent)
         public int IdleAnimationSpacing { get; set; } = 5;
 
@@ -249,15 +253,15 @@ namespace MSAgentAI.Config
                     {
                         // Use word boundaries (\b) to match WHOLE words only, not substrings
                         // This prevents "AI" from matching inside "Entertaining"
-                        string pattern = @"\b" + System.Text.RegularExpressions.Regex.Escape(entry.Key) + @"\b";
+                        string pattern = @"\b" + Regex.Escape(entry.Key) + @"\b";
                         
                         // The \map\ command REPLACES the word with the pronunciation
                         // Format: \map="anim-ay"="anime"\ (replaces the word entirely)
-                        text = System.Text.RegularExpressions.Regex.Replace(
+                        text = Regex.Replace(
                             text, 
                             pattern, 
                             match => $"\\map=\"{entry.Value}\"=\"{match.Value}\"\\",
-                            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            RegexOptions.IgnoreCase);
                     }
                 }
             }
@@ -285,16 +289,43 @@ namespace MSAgentAI.Config
             if (string.IsNullOrEmpty(text))
                 return (text, animations);
 
-            var matches = System.Text.RegularExpressions.Regex.Matches(text, @"&&(\w+)");
-            foreach (System.Text.RegularExpressions.Match match in matches)
+            var matches = Regex.Matches(text, @"&&(\w+)");
+            foreach (Match match in matches)
             {
                 animations.Add(match.Groups[1].Value);
             }
 
             // Remove animation triggers from text
-            text = System.Text.RegularExpressions.Regex.Replace(text, @"&&\w+\s*", "").Trim();
+            text = Regex.Replace(text, @"&&\w+\s*", "").Trim();
             
             return (text, animations);
+        }
+
+        /// <summary>
+        /// Splits text into sentences for sentence-by-sentence speech
+        /// </summary>
+        public static List<string> SplitIntoSentences(string text)
+        {
+            var sentences = new List<string>();
+            if (string.IsNullOrEmpty(text))
+                return sentences;
+
+            // Split by common sentence endings: period, exclamation, question mark
+            // Also handle ellipsis (...) as a sentence boundary
+            // Note: This is a simple implementation that may not handle all edge cases
+            // (e.g., abbreviations like "Dr." or decimal numbers like "3.14")
+            var parts = Regex.Split(text, @"(?<=[.!?])\s+|(?<=\.\.\.)\s*");
+
+            foreach (var part in parts)
+            {
+                var trimmed = part.Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                {
+                    sentences.Add(trimmed);
+                }
+            }
+
+            return sentences;
         }
 
         /// <summary>
