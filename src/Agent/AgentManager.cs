@@ -606,17 +606,14 @@ namespace MSAgentAI.Agent
             if (sentences == null || sentences.Count == 0)
                 return;
 
-            // Speak each sentence with a small delay between them
+            // MS Agent Speak queues the text, so we can just call Speak for each sentence
+            // and it will display them sequentially. The delay parameter is kept for future
+            // enhancements but not used to avoid blocking the UI thread.
             foreach (var sentence in sentences)
             {
                 if (!string.IsNullOrEmpty(sentence))
                 {
                     _character.Speak(sentence, null);
-                    // Add a small pause between sentences
-                    if (delayMs > 0)
-                    {
-                        System.Threading.Thread.Sleep(delayMs);
-                    }
                 }
             }
         }

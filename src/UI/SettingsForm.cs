@@ -66,6 +66,7 @@ namespace MSAgentAI.UI
         private Label _confidenceValueLabel;
         private TrackBar _silenceTrackBar;
         private Label _silenceValueLabel;
+        private CheckBox _truncateSpeechCheckBox;
 
         // Ollama controls
         private TextBox _ollamaUrlTextBox;
@@ -650,12 +651,11 @@ namespace MSAgentAI.UI
             };
             
             // Truncate speech checkbox
-            CheckBox _truncateSpeechCheckBox = new CheckBox
+            _truncateSpeechCheckBox = new CheckBox
             {
                 Text = "Sentence-by-sentence speech (truncate long speeches into separate bubbles)",
                 Location = new Point(15, 370),
-                Size = new Size(550, 25),
-                Name = "truncateSpeechCheckBox"
+                Size = new Size(550, 25)
             };
 
             _voiceTab.Controls.AddRange(new Control[]
@@ -1349,9 +1349,7 @@ namespace MSAgentAI.UI
             _agentSizeValueLabel.Text = _agentSizeTrackBar.Value.ToString() + "%";
             
             // Truncate speech
-            var truncateSpeechCheckBox = _voiceTab.Controls.Find("truncateSpeechCheckBox", false).FirstOrDefault() as CheckBox;
-            if (truncateSpeechCheckBox != null)
-                truncateSpeechCheckBox.Checked = _settings.TruncateSpeech;
+            _truncateSpeechCheckBox.Checked = _settings.TruncateSpeech;
 
             // Ollama settings
             _ollamaUrlTextBox.Text = _settings.OllamaUrl;
@@ -1451,9 +1449,7 @@ namespace MSAgentAI.UI
             _settings.AgentSize = _agentSizeTrackBar.Value;
             
             // Truncate speech
-            var truncateSpeechCheckBox = _voiceTab.Controls.Find("truncateSpeechCheckBox", false).FirstOrDefault() as CheckBox;
-            if (truncateSpeechCheckBox != null)
-                _settings.TruncateSpeech = truncateSpeechCheckBox.Checked;
+            _settings.TruncateSpeech = _truncateSpeechCheckBox.Checked;
 
             // Ollama settings
             _settings.OllamaUrl = _ollamaUrlTextBox.Text;
