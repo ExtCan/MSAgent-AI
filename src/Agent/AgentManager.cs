@@ -598,6 +598,30 @@ namespace MSAgentAI.Agent
         }
 
         /// <summary>
+        /// Makes the character speak text sentence by sentence with delays
+        /// </summary>
+        public void SpeakSentences(List<string> sentences, int delayMs = 500)
+        {
+            EnsureLoaded();
+            if (sentences == null || sentences.Count == 0)
+                return;
+
+            // Speak each sentence with a small delay between them
+            foreach (var sentence in sentences)
+            {
+                if (!string.IsNullOrEmpty(sentence))
+                {
+                    _character.Speak(sentence, null);
+                    // Add a small pause between sentences
+                    if (delayMs > 0)
+                    {
+                        System.Threading.Thread.Sleep(delayMs);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// Makes the character think the specified text (shows in thought balloon)
         /// </summary>
         public void Think(string text)

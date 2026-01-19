@@ -153,6 +153,9 @@ namespace MSAgentAI.Config
         // Agent size (100 = normal, 50 = half, 200 = double)
         public int AgentSize { get; set; } = 100;
         
+        // Speech truncation (sentence by sentence)
+        public bool TruncateSpeech { get; set; } = false;
+        
         // Idle animation spacing (in idle timer ticks - higher = less frequent)
         public int IdleAnimationSpacing { get; set; } = 5;
 
@@ -295,6 +298,34 @@ namespace MSAgentAI.Config
             text = System.Text.RegularExpressions.Regex.Replace(text, @"&&\w+\s*", "").Trim();
             
             return (text, animations);
+        }
+
+        /// <summary>
+        /// Splits text into sentences for sentence-by-sentence speech
+        /// </summary>
+        public static List<string> SplitIntoSentences(string text)
+        {
+            var sentences = new List<string>();
+            if (string.IsNullOrEmpty(text))
+                return sentences;
+
+            // Split by common sentence endings: period, exclamation, question mark
+            // Also handle ellipsis (...) as a sentence boundary
+            var parts = System.Text.RegularExpressions.Regex.Split(
+                text, 
+                @"(?<=[.!?])\s+|(?<=\.\.\.)\s+"
+            );
+
+            foreach (var part in parts)
+            {
+                var trimmed = part.Trim();
+                if (!string.IsNullOrEmpty(trimmed))
+                {
+                    sentences.Add(trimmed);
+                }
+            }
+
+            return sentences;
         }
 
         /// <summary>
