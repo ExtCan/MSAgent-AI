@@ -312,7 +312,9 @@ namespace MSAgentAI.Config
 
             // Split by common sentence endings: period, exclamation, question mark
             // Also handle ellipsis (...) as a sentence boundary
-            var parts = Regex.Split(text, @"(?<=[.!?])\s+|(?<=\.\.\.)\s+");
+            // Note: This is a simple implementation that may not handle all edge cases
+            // (e.g., abbreviations like "Dr." or decimal numbers like "3.14")
+            var parts = Regex.Split(text, @"(?<=[.!?])\s+|(?<=\.\.\.)\s*");
 
             foreach (var part in parts)
             {
