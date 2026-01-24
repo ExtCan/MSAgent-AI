@@ -350,7 +350,8 @@ namespace MSAgentAI.UI
                     // Start all compatible hooks
                     _hookManager.StartAll();
                     
-                    Logger.Log($"Application hooks initialized ({_hookManager.GetAllHooks().Count()} hooks registered)");
+                    var hookCount = _hookManager.GetAllHooks().ToList().Count;
+                    Logger.Log($"Application hooks initialized ({hookCount} hooks registered)");
                 }
                 else
                 {
@@ -364,6 +365,26 @@ namespace MSAgentAI.UI
         }
         
         /// <summary>
+        /// Helper method to get a string parameter from hook config
+        /// </summary>
+        private string GetStringParameter(Dictionary<string, string> parameters, string key, string defaultValue = null)
+        {
+            return parameters != null && parameters.ContainsKey(key) ? parameters[key] : defaultValue;
+        }
+        
+        /// <summary>
+        /// Helper method to get an integer parameter from hook config
+        /// </summary>
+        private int GetIntParameter(Dictionary<string, string> parameters, string key, int defaultValue)
+        {
+            if (parameters != null && parameters.ContainsKey(key) && int.TryParse(parameters[key], out int value))
+            {
+                return value;
+            }
+            return defaultValue;
+        }
+        
+        /// <summary>
         /// Creates a hook instance from configuration
         /// </summary>
         private AppHook.IAppHook CreateHookFromConfig(AppHookConfig config)
@@ -372,36 +393,20 @@ namespace MSAgentAI.UI
             {
                 case "processmonitor":
                 case "process":
-                    string startPrompt = config.Parameters.ContainsKey("StartPrompt") 
-                        ? config.Parameters["StartPrompt"] 
-                        : null;
-                    string stopPrompt = config.Parameters.ContainsKey("StopPrompt") 
-                        ? config.Parameters["StopPrompt"] 
-                        : null;
-                    int pollInterval = config.Parameters.ContainsKey("PollInterval") 
-                        && int.TryParse(config.Parameters["PollInterval"], out int interval)
-                        ? interval 
-                        : 2000;
-                    
                     return new AppHook.Hooks.ProcessMonitorHook(
                         config.TargetApp,
                         config.DisplayName,
-                        startPrompt,
-                        stopPrompt,
-                        pollInterval
+                        GetStringParameter(config.Parameters, "StartPrompt"),
+                        GetStringParameter(config.Parameters, "StopPrompt"),
+                        GetIntParameter(config.Parameters, "PollInterval", 2000)
                     );
                     
                 case "windowmonitor":
                 case "window":
-                    int windowPollInterval = config.Parameters.ContainsKey("PollInterval") 
-                        && int.TryParse(config.Parameters["PollInterval"], out int wInterval)
-                        ? wInterval 
-                        : 1000;
-                    
                     return new AppHook.Hooks.WindowMonitorHook(
                         config.TargetApp,
                         config.DisplayName,
-                        windowPollInterval
+                        GetIntParameter(config.Parameters, "PollInterval", 1000)
                     );
                     
                 default:
@@ -417,7 +422,8 @@ namespace MSAgentAI.UI
         {
             try
             {
-                Logger.Log($"Hook event: {e.EventType} from {(sender as AppHook.IAppHook)?.DisplayName}");
+                string hookName = (sender as AppHook.IAppHook)?.DisplayName ?? "Unknown Hook";
+                Logger.Log($"Hook event: {e.EventType} from {hookName}");
                 
                 // Handle based on what the hook wants us to do
                 if (!string.IsNullOrEmpty(e.DirectSpeech))
