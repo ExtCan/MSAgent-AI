@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -29,6 +30,7 @@ namespace MSAgentAI.UI
         private AppSettings _settings;
         private SpeechRecognitionManager _speechRecognition;
         private PipelineServer _pipelineServer;
+        private AppHook.AppHookManager _hookManager;
         private bool _inCallMode;
 
         private NotifyIcon _trayIcon;
@@ -80,6 +82,9 @@ namespace MSAgentAI.UI
 
             // Initialize communication pipeline
             InitializePipeline();
+
+            // Initialize application hooks
+            InitializeAppHooks();
 
             // Load the agent if a character is selected
             LoadAgentFromSettings();
@@ -305,6 +310,159 @@ namespace MSAgentAI.UI
             catch (Exception ex)
             {
                 Logger.LogError("Failed to initialize communication pipeline", ex);
+            }
+        }
+
+        /// <summary>
+        /// Initialize the application hooking system for monitoring apps/games
+        /// </summary>
+        private void InitializeAppHooks()
+        {
+            try
+            {
+                _hookManager = new AppHook.AppHookManager();
+                
+                // Subscribe to hook events
+                _hookManager.OnHookTriggered += OnHookTriggered;
+                
+                // Register hooks based on configuration
+                if (_settings.EnableAppHooks && _settings.AppHooks != null)
+                {
+                    foreach (var hookConfig in _settings.AppHooks)
+                    {
+                        if (!hookConfig.Enabled)
+                            continue;
+                            
+                        try
+                        {
+                            AppHook.IAppHook hook = CreateHookFromConfig(hookConfig);
+                            if (hook != null)
+                            {
+                                _hookManager.RegisterHook(hook);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError($"Failed to create hook '{hookConfig.DisplayName}'", ex);
+                        }
+                    }
+                    
+                    // Start all compatible hooks
+                    _hookManager.StartAll();
+                    
+                    Logger.Log($"Application hooks initialized ({_hookManager.GetAllHooks().Count()} hooks registered)");
+                }
+                else
+                {
+                    Logger.Log("Application hooks disabled in settings");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Failed to initialize application hooks", ex);
+            }
+        }
+        
+        /// <summary>
+        /// Creates a hook instance from configuration
+        /// </summary>
+        private AppHook.IAppHook CreateHookFromConfig(AppHookConfig config)
+        {
+            switch (config.HookType?.ToLowerInvariant())
+            {
+                case "processmonitor":
+                case "process":
+                    string startPrompt = config.Parameters.ContainsKey("StartPrompt") 
+                        ? config.Parameters["StartPrompt"] 
+                        : null;
+                    string stopPrompt = config.Parameters.ContainsKey("StopPrompt") 
+                        ? config.Parameters["StopPrompt"] 
+                        : null;
+                    int pollInterval = config.Parameters.ContainsKey("PollInterval") 
+                        && int.TryParse(config.Parameters["PollInterval"], out int interval)
+                        ? interval 
+                        : 2000;
+                    
+                    return new AppHook.Hooks.ProcessMonitorHook(
+                        config.TargetApp,
+                        config.DisplayName,
+                        startPrompt,
+                        stopPrompt,
+                        pollInterval
+                    );
+                    
+                case "windowmonitor":
+                case "window":
+                    int windowPollInterval = config.Parameters.ContainsKey("PollInterval") 
+                        && int.TryParse(config.Parameters["PollInterval"], out int wInterval)
+                        ? wInterval 
+                        : 1000;
+                    
+                    return new AppHook.Hooks.WindowMonitorHook(
+                        config.TargetApp,
+                        config.DisplayName,
+                        windowPollInterval
+                    );
+                    
+                default:
+                    Logger.Log($"Unknown hook type: {config.HookType}");
+                    return null;
+            }
+        }
+        
+        /// <summary>
+        /// Handles events triggered by application hooks
+        /// </summary>
+        private void OnHookTriggered(object sender, AppHook.AppHookEventArgs e)
+        {
+            try
+            {
+                Logger.Log($"Hook event: {e.EventType} from {(sender as AppHook.IAppHook)?.DisplayName}");
+                
+                // Handle based on what the hook wants us to do
+                if (!string.IsNullOrEmpty(e.DirectSpeech))
+                {
+                    // Direct speech - bypass AI
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => SpeakWithAnimations(e.DirectSpeech)));
+                    else
+                        SpeakWithAnimations(e.DirectSpeech);
+                }
+                else if (!string.IsNullOrEmpty(e.Prompt) && _settings.EnableOllamaChat)
+                {
+                    // Send to AI for dynamic response
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var response = await _ollamaClient.ChatAsync(e.Prompt, _cancellationTokenSource.Token);
+                            if (!string.IsNullOrEmpty(response) && _agentManager?.IsLoaded == true)
+                            {
+                                if (this.InvokeRequired)
+                                    this.Invoke((Action)(() => SpeakWithAnimations(response)));
+                                else
+                                    SpeakWithAnimations(response);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.LogError("AppHook: Failed to process AI response", ex);
+                        }
+                    });
+                }
+                
+                // Play animation if specified
+                if (!string.IsNullOrEmpty(e.Animation))
+                {
+                    if (this.InvokeRequired)
+                        this.Invoke((Action)(() => _agentManager?.PlayAnimation(e.Animation)));
+                    else
+                        _agentManager?.PlayAnimation(e.Animation);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError("Error handling hook event", ex);
             }
         }
 
@@ -976,6 +1134,9 @@ namespace MSAgentAI.UI
 
             // Stop the communication pipeline
             _pipelineServer?.Dispose();
+
+            // Stop and cleanup application hooks
+            _hookManager?.Dispose();
 
             _trayIcon?.Dispose();
             _agentManager?.Dispose();
