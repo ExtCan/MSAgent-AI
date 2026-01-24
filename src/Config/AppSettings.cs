@@ -53,6 +53,10 @@ namespace MSAgentAI.Config
         public int PipelinePort { get; set; } = 8765; // For TCP mode
         public string PipelineName { get; set; } = "MSAgentAI"; // For Named Pipe mode
 
+        // Application Hook settings
+        public bool EnableAppHooks { get; set; } = false;
+        public List<AppHookConfig> AppHooks { get; set; } = new List<AppHookConfig>();
+
         // Random dialog settings
         public bool EnableRandomDialog { get; set; } = true;
         public int RandomDialogChance { get; set; } = 9000; // 1 in 9000 chance per second
@@ -464,5 +468,36 @@ namespace MSAgentAI.Config
         public Color ButtonForeground { get; set; }
         public Color InputBackground { get; set; }
         public Color InputForeground { get; set; }
+    }
+    
+    /// <summary>
+    /// Configuration for an application hook
+    /// </summary>
+    public class AppHookConfig
+    {
+        /// <summary>
+        /// Hook type (e.g., "ProcessMonitor", "WindowMonitor", "Custom")
+        /// </summary>
+        public string HookType { get; set; }
+        
+        /// <summary>
+        /// Display name for the hook
+        /// </summary>
+        public string DisplayName { get; set; }
+        
+        /// <summary>
+        /// Target application/process name
+        /// </summary>
+        public string TargetApp { get; set; }
+        
+        /// <summary>
+        /// Whether this hook is enabled
+        /// </summary>
+        public bool Enabled { get; set; }
+        
+        /// <summary>
+        /// Custom parameters for the hook (stored as JSON string)
+        /// </summary>
+        public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
     }
 }
