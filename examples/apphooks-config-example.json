@@ -1,0 +1,47 @@
+{
+  "EnableAppHooks": true,
+  "AppHooks": [
+    {
+      "HookType": "ProcessMonitor",
+      "DisplayName": "Notepad Monitor",
+      "TargetApp": "notepad",
+      "Enabled": true,
+      "Parameters": {
+        "StartPrompt": "The user just opened Notepad. Encourage them with their writing!",
+        "StopPrompt": "The user closed Notepad. Ask if they saved their work.",
+        "PollInterval": "2000"
+      }
+    },
+    {
+      "HookType": "ProcessMonitor",
+      "DisplayName": "Visual Studio Code Monitor",
+      "TargetApp": "Code",
+      "Enabled": false,
+      "Parameters": {
+        "StartPrompt": "The user opened VS Code. Wish them productive coding!",
+        "StopPrompt": "VS Code was closed. Ask how the coding session went.",
+        "PollInterval": "2000"
+      }
+    },
+    {
+      "HookType": "WindowMonitor",
+      "DisplayName": "Chrome Window Monitor",
+      "TargetApp": "chrome",
+      "Enabled": false,
+      "Parameters": {
+        "PollInterval": "1000"
+      }
+    },
+    {
+      "HookType": "ProcessMonitor",
+      "DisplayName": "Game Monitor (Example)",
+      "TargetApp": "MyGame",
+      "Enabled": false,
+      "Parameters": {
+        "StartPrompt": "The user started playing a game! Get excited about it!",
+        "StopPrompt": "Game session ended. Ask how it went.",
+        "PollInterval": "3000"
+      }
+    }
+  ]
+}

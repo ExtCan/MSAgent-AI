@@ -12,6 +12,8 @@ A Windows desktop friend application inspired by BonziBUDDY and CyberBuddy, usin
 - **AI Memory System**: The AI remembers important information from conversations (with configurable threshold)
 - **Memory Management**: View, edit, add, remove, import/export AI memories
 - **Random Dialog**: Configurable random dialog feature (1 in 9000 chance per second by default) that sends custom prompts to Ollama
+- **Application Hooks**: Extensible system to monitor and react to applications/games with dynamic AI responses (see [APPHOOKS.md](APPHOOKS.md))
+- **Communication Pipeline**: External apps can send commands via Named Pipe or TCP Socket (see [PIPELINE.md](PIPELINE.md))
 - **User-Friendly GUI**: System tray application with comprehensive settings panel
 
 ## Requirements
@@ -79,6 +81,14 @@ Access via the system tray menu: **Manage Memories...**
 - **Pipe Name**: For Named Pipe mode, specify the pipe name (default: MSAgentAI)
 
 The pipeline allows external applications to send commands to MSAgent-AI. See [PIPELINE.md](PIPELINE.md) for details and examples.
+
+### Application Hooks
+- **Enable Hooks**: Toggle the application hooking system on/off
+- **Hook Management**: Register custom hooks to monitor applications and games
+- **Event Reactions**: Configure how the agent reacts to application events
+- **Extensibility**: Create custom C# hooks for any application or scenario
+
+Application hooks allow MSAgent-AI to dynamically react to games and applications. See [APPHOOKS.md](APPHOOKS.md) for comprehensive documentation and examples.
 
 ### Custom Lines
 Edit the following types of lines the agent will say:
